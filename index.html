@@ -1,12 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Music</title>
-</head>
-<body>
-    
-    <script src="http://unpkg.com/tone"></script>
-</body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body>
+    <div id="start-overlay">
+      <h1>Music Studio</h1>
+      <p>Click anywhere to get started</p>
+    </div>
+
+    <div id="keys"></div>
+
+    <div id="status">
+      <span id="bpm-display">BPM: 120</span>
+      <span id="preset-display">Preset: pluck</span>
+      <span id="track-display">Track: 1 Lead</span>
+      <span id="play-state">Stopped</span>
+    </div>
+  </body>
 </html>
