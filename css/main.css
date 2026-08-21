@@ -19,6 +19,7 @@
 html, body {
   background: var(--background);
   color: var(--foreground);
+  padding: 0; margin: 0;
 }
 
 #start-overlay {
@@ -40,4 +41,16 @@ html, body {
   border-radius: var(--border-radius);
   padding: 48px 64px;
   text-align: center;
+}
+
+.sidebar {
+  height: 100vh;
+  background: var(--surface);
+  border-right: 2px solid var(--border-strong);
+  width: 75px;
+}
+
+.content {
+  display: flex;
+  padding: 0; margin: 0;
 }
