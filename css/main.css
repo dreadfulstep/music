@@ -2,6 +2,7 @@
   --background: oklch(0% 0 0);
   --foreground: oklch(92% 0.005 270);
   --foreground-secondary: oklch(60% 0.01 270);
+  --foreground-tertiary: oklch(40% 0.01 270);
 
   --surface: oklch(14% 0.005 270);
   --surface-hover: oklch(18% 0.01 270);
@@ -11,15 +12,25 @@
   --border: oklch(100% 0 0 / 0.08);
   --border-strong: oklch(100% 0 0 / 0.15);
 
-  --accent: oklch(70% 0.2 260);
+  --accent: oklch(0.61 0.23 305);
 
   --border-radius: 1rem;
 }
 
-html, body {
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
   background: var(--background);
   color: var(--foreground);
-  padding: 0; margin: 0;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 #start-overlay {
@@ -29,7 +40,7 @@ html, body {
   background: color-mix(in oklch, var(--background) 15%, transparent);
   backdrop-filter: blur(1px);
 
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -43,14 +54,172 @@ html, body {
   text-align: center;
 }
 
-.sidebar {
+.app {
+  display: flex;
   height: 100vh;
-  background: var(--surface);
-  border-right: 2px solid var(--border-strong);
-  width: 75px;
+  width: 100vw;
 }
 
-.content {
+.sidebar {
+  height: 100%;
+  width: 64px;
+  background: var(--surface);
+  border-right: 1px solid var(--border-strong);
   display: flex;
-  padding: 0; margin: 0;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 16px;
+  gap: 16px;
+}
+
+.sidebar .logo {
+  width: 32px;
+  height: 32px;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.navbar {
+  margin: 12px 12px 0 12px;
+  height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-brand {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: -0.01rem;
+}
+
+.nav-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: calc(75%, var(--border-radius));
+  color: var(--foreground-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.nav-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--foreground);
+}
+
+.nav-btn.active {
+  background: var(--accent);
+  border-color: var(--border-strong);
+  color: var(--background);
+}
+
+.nav-readout {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--foreground-secondary);
+}
+
+.nav-readout strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.workspace {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  margin: 12px;
+  background: var(--background);
+  border-radius: var(--border-radius);
+}
+
+.bottom-bar {
+  height: 36px;
+  border-top: 1px solid var(--border-strong);
+  background-color: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.status-left,
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-item {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--foreground-tertiary);
+}
+
+.status-item .value {
+  color: var(--foreground-secondary);
+}
+
+
+
+#keys {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.key {
+  width: 36px;
+  height: 100px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 8px;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--foreground-tertiary);
+  transition: all 0.05s;
+}
+
+.key.sharp {
+  width: 28px;
+  height: 64px;
+  background: var(--background);
+  margin: 0 -14px;
+  z-index: 2;
+}
+
+.key.pressed {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--background);
 }

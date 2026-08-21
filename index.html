@@ -25,21 +25,58 @@
       </div>
     </div>
 
-    <div class="content">
-      <div class="sidebar">Hey</div>
+    <div class="app">
+      <aside class="sidebar">
+        <img
+          class="logo"
+          src="/assets/logo.png"
+          width="32"
+          height="32"
+          alt="Logo"
+        />
+      </aside>
 
-      <main>
-        <div class="navbar">
+      <div class="main">
+        <nav class="navbar">
+          <span class="nav-brand">Midia</span>
           <span id="bpm-display">BPM: 120</span>
+          <div class="nav-group">
+            <button class="nav-btn" data-action="play">Play</button>
+            <button class="nav-btn" data-action="stop">Stop</button>
+            <button class="nav-btn" data-action="record">Record</button>
+          </div>
+          <div class="nav-group">
+            <span class="nav-readout"><strong>120</strong> BPM</span>
+            <span class="nav-readout">01:00:00</span>
+          </div>
+        </nav>
+
+        <div class="workspace">
+          <cavnvas id="piano-roll"></cavnvas>
+          <div id="keys"></div>
         </div>
 
-        <div id="keys"></div>
+        <div class="bottom-bar">
+          <div class="status-left">
+            <span class="status-item"
+              >Track: <span class="value" id="track-display">Lead</span></span
+            >
+            <span class="status-item"
+              >Preset:
+              <span class="value" id="preset-display">pluck</span></span
+            >
+          </div>
+          <div class="status-right">
+            <span class="status-item" id="play-state">Stopped</span>
+          </div>
+        </div>
+
         <div id="status">
           <span id="preset-display">Preset: pluck</span>
           <span id="track-display">Track: 1 Lead</span>
           <span id="play-state">Stopped</span>
         </div>
-      </main>
+      </div>
     </div>
   </body>
 </html>
