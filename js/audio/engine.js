@@ -2,6 +2,7 @@ import { state} from '../state.js';
 
 class SynthEngine {
     constructor() {
+        this.initialised = false;
         this.synths = new Map(); // trackId -> PolySynth
         this.presets = {
             pluck: {
@@ -26,11 +27,15 @@ class SynthEngine {
             }
         };
         this.master = null;
+        this.limiter = null;
         this.reverb = null;
         this.delay = null;
     };
 
     async init() {
+        if (this.initialised) return;
+
+        this.limiter = new Tone.Limiter(-3).toDestination();
         this.master = new Tone.Gain(0.8).toDestination();
         this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.master);
         this.delay = new Tone.FeedbackDelay('8n', 0.15).connect(this.reverb);
@@ -38,15 +43,17 @@ class SynthEngine {
         for (const track of state.tracks) {
             const preset = this.presets[track.preset] || this.presets.pluck;
             const synth = new Tone.PolySynth(Tone.Synth, {
+                maxPolyphony: 6,
                 oscillator: preset.oscillator,
                 envelope: preset.envelope,
-                volume: -6
+                volume: -10
             }).connect(this.delay);
 
             this.synths.set(track.id, synth);
         };
         
         Tone.Transport.bpm.value = state.bpm;
+        this.initialised = true;
         console.log('Engine initialised with', this.synths.size, 'tracks');
     }
 
@@ -83,7 +90,7 @@ class SynthEngine {
         Tone.Transport.start();
         state.isPlaying = true;
         document.getElementById('play-state').textContent = 'Playing';
-        document.getElementById('play-state').classList.add('active');
+        document.getElementById('play-state')?.classList.add('active');
     };
 
     stopTransport() {
@@ -91,7 +98,7 @@ class SynthEngine {
         state.isPlaying = false;
         state.playheadBeat = 0;
         document.getElementById('play-state').textContent = 'Stopped';
-        document.getElementById('play-state').classList.remove('active');
+        document.getElementById('play-state')?.classList.remove('active');
     }
 };
 

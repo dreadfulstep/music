@@ -30,7 +30,13 @@ body {
   padding: 0;
   margin: 0;
   height: 100%;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
 }
 
 #start-overlay {
@@ -62,19 +68,36 @@ body {
 
 .sidebar {
   height: 100%;
-  width: 64px;
+  width: 175px;
   background: var(--surface);
   border-right: 1px solid var(--border-strong);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 16px;
+  padding: 24px 24px 0 24px;
   gap: 16px;
 }
 
+.sidebar .branding {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+  flex-direction: row;
+}
+
+.sidebar .branding-content {
+  display: flex;
+  justify-content: start;
+  align-items: start;
+  width: 100%;
+  flex-direction: column;
+}
+
 .sidebar .logo {
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
 }
 
 .main {
@@ -103,7 +126,7 @@ body {
   gap: 16px;
 }
 
-.nav-brand {
+.brand {
   font-weight: 700;
   font-size: 0.95rem;
   letter-spacing: -0.01rem;
@@ -135,7 +158,7 @@ body {
 }
 
 .nav-readout {
-  font-family: ui-monospace, 'SF Mono', monospace;
+  font-family: ui-monospace, "SF Mono", monospace;
   font-size: 0.85rem;
   color: var(--foreground-secondary);
 }
@@ -173,7 +196,7 @@ body {
 }
 
 .status-item {
-  font-family: ui-monospace, 'SF Mono', monospace;
+  font-family: ui-monospace, "SF Mono", monospace;
   font-size: 0.75rem;
   color: var(--foreground-tertiary);
 }
@@ -181,8 +204,6 @@ body {
 .status-item .value {
   color: var(--foreground-secondary);
 }
-
-
 
 #keys {
   position: absolute;
@@ -197,16 +218,16 @@ body {
 .key {
   width: 36px;
   height: 100px;
-  background: var(--surface);
+  background: var(--foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 8px;
-  font-family: ui-monospace, 'SF Mono', monospace;
+  font-family: ui-monospace, "SF Mono", monospace;
   font-size: 0.7rem;
-  color: var(--foreground-tertiary);
+  color: var(--background);
   transition: all 0.05s;
 }
 
@@ -214,12 +235,19 @@ body {
   width: 28px;
   height: 64px;
   background: var(--background);
+  color: var(--foreground);
   margin: 0 -14px;
   z-index: 2;
 }
 
 .key.pressed {
-  background: var(--accent);
+  background: linear-gradient(var(--foreground) 50%, var(--accent));
   border-color: var(--accent);
   color: var(--background);
+}
+
+.key.sharp.pressed {
+  background: linear-gradient(var(--background), var(--accent));
+  color: var(--foreground);
+  border: 0;
 }

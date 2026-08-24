@@ -35,18 +35,18 @@ export function initInput() {
   const row2 = ["z", "x", "c", "v", "b", "n", "m"];
 
   [...row2, ...row1].forEach((k) => {
+    const note = state.keymap[k];
+    if (!note) return;
+
     const div = document.createElement("div");
-    div.className =
-      "key" +
-      (k === "w" || k === "e" || k === "t" || k === "y" || k === "u"
-        ? " black"
-        : "");
+    const isSharp = note.includes("#");
+    div.className = "key" + (isSharp ? " sharp" : "");
     div.dataset.key = k;
     div.textContent = k.toUpperCase();
     container.appendChild(div);
   });
 
-  window.addEventListener("keydown", (e) => {
+  window.addEventListener("keydown", async (e) => {
     if (e.key === "Tab") {
       e.preventDefault();
       return;
@@ -56,6 +56,11 @@ export function initInput() {
 
     if (activeNotes.has(key)) return;
     activeNotes.add(key);
+
+    if (!engine.initialised) {
+      await Tone.start();
+      await engine.init();
+    }
 
     const note = state.keymap[key];
     if (note) {
@@ -79,39 +84,39 @@ export function initInput() {
     if (key === "q") {
       engine.setPreset(state.currentTrack, "pluck");
       updateTrackDisplay();
-    };
+    }
     if (key === "r") {
       engine.setPreset(state.currentTrack, "subBass");
       updateTrackDisplay();
-    };
+    }
     if (key === "y") {
       engine.setPreset(state.currentTrack, "lead");
       updateTrackDisplay();
-    };
+    }
     if (key === "i") {
       engine.setPreset(state.currentTrack, "pad");
       updateTrackDisplay();
-    };
+    }
 
-    if (key === ',') engine.setBpm(Math.max(60, state.bpm - 5));
-    if (key === '.') engine.setBpm(Math.min(200, state.bpm + 5));
+    if (key === ",") engine.setBpm(Math.max(60, state.bpm - 5));
+    if (key === ".") engine.setBpm(Math.min(200, state.bpm + 5));
 
-    if (key === 'm') {
-        const t = state.tracks[state.currentTrack];
-        t.muted = !t.muted;
-        console.log(t.name, t.muted? 'muted' : 'unmuted');
-    };
+    if (key === "m") {
+      const t = state.tracks[state.currentTrack];
+      t.muted = !t.muted;
+      console.log(t.name, t.muted ? "muted" : "unmuted");
+    }
   });
 
-  window.addEventListener('keyup', (e) => {
+  window.addEventListener("keyup", (e) => {
     const key = e.key.toLowerCase();
     activeNotes.delete(key);
 
     const note = state.keymap[key];
     if (note) {
-        engine.stopNote(note);
-        highlightKey(key, false);
-    };
+      engine.stopNote(note);
+      highlightKey(key, false);
+    }
   });
 
   updateTrackDisplay();
