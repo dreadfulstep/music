@@ -6,8 +6,8 @@ class SynthEngine {
         this.synths = new Map(); // trackId -> PolySynth
         this.presets = {
             pluck: {
-                oscillator: { type: 'triangle' },
-                envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.15 }
+                oscillator: { type: 'fattriangle', count: 2, spread: 10 },
+                envelope: { attack: 0.002, decay: 0.4, sustain: 0.15, release: 1.5 }
             },
             subBass: {
                 oscillator: { type: 'sine' },
@@ -36,7 +36,7 @@ class SynthEngine {
         if (this.initialised) return;
 
         this.limiter = new Tone.Limiter(-3).toDestination();
-        this.master = new Tone.Gain(0.8).toDestination();
+        this.master = new Tone.Gain(0.8).toDestination(this.limiter);
         this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.master);
         this.delay = new Tone.FeedbackDelay('8n', 0.15).connect(this.reverb);
 
