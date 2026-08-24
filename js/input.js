@@ -81,19 +81,19 @@ export function initInput() {
       return;
     }
 
-    if (key === "q") {
+    if (key === "-") {
       engine.setPreset(state.currentTrack, "pluck");
       updateTrackDisplay();
     }
-    if (key === "r") {
+    if (key === "=") {
       engine.setPreset(state.currentTrack, "subBass");
       updateTrackDisplay();
     }
-    if (key === "y") {
+    if (key === "[") {
       engine.setPreset(state.currentTrack, "lead");
       updateTrackDisplay();
     }
-    if (key === "i") {
+    if (key === "]") {
       engine.setPreset(state.currentTrack, "pad");
       updateTrackDisplay();
     }
