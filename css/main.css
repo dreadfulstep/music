@@ -9,6 +9,8 @@
 
   --secondary: oklch(17.878% 0.00756 229.488);
 
+  --tertiary: oklch(26.497% 0.00611 214.639);
+
   --border: oklch(100% 0 0 / 0.08);
   --border-strong: oklch(100% 0 0 / 0.15);
 
@@ -68,36 +70,91 @@ body {
 
 .sidebar {
   height: 100%;
-  width: 175px;
+  width: 220px;
   background: var(--surface);
   border-right: 1px solid var(--border-strong);
   display: flex;
   flex-direction: column;
+  padding: 20px 0;
+  gap: 4px;
+}
+
+.sidebar-header {
+  display: flex;
   align-items: center;
-  padding: 24px 24px 0 24px;
-  flex-shrink: 0;
-  gap: 16px;
+  gap: 10px;
+  padding: 0 16px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
 }
 
-.sidebar .branding {
+.brand-block {
   display: flex;
-  justify-content: space-between;
-  width: 100%;
-  gap: 1rem;
-  flex-direction: row;
-}
-
-.sidebar .branding-content {
-  display: flex;
-  justify-content: start;
-  align-items: start;
-  width: 100%;
   flex-direction: column;
+  line-height: 1.2;
 }
 
-.sidebar .logo {
-  width: 48px;
-  height: 48px;
+.brand {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.version {
+  font-size: 0.7rem;
+  color: var(--foreground-tertiary);
+  font-family: ui-monospace, monospace;
+}
+
+.sidebar-section {
+  padding: 12px 0;
+}
+
+.section-title {
+  padding: 0 16px 8px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--foreground-tertiary);
+  font-weight: 600;
+}
+
+.controls-section {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.shortcut-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--foreground-secondary);
+}
+
+.shortcut kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  background: var(--tertiary);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--foreground);
+  box-shadow: 0 2px 0 var(--border);
 }
 
 .main {
@@ -124,12 +181,6 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-.brand {
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: -0.01rem;
 }
 
 .nav-btn {
@@ -251,3 +302,4 @@ body {
   color: var(--foreground);
   border: 0;
 }
+

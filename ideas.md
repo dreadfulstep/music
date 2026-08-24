@@ -8,3 +8,5 @@ Track recording, maybe SHIFT + R? Or F3 im not sure yet.
 The layout should be with a fixed looking nav, 100% height around 175px width. (Imma die trying to support mobile if i evevn do lmao)
 Navbar floating and stuff with the BPM, + - icons to decrease / increase, icons for play stop record and uhh yeah. Maybe a settings thing too or a settings shortcut
 The piano at the bottom, either 3d or flat keys idk, linear gradient on active
+
+When focused on a track, you have a timeline at the bottom (esc to close timeline), you then use arrow keys to navigate through notes and up/down arrows to move them, and maybe shift + right/left arrow key to make it longer / shorter
