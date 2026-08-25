@@ -10,3 +10,5 @@ Navbar floating and stuff with the BPM, + - icons to decrease / increase, icons 
 The piano at the bottom, either 3d or flat keys idk, linear gradient on active
 
 When focused on a track, you have a timeline at the bottom (esc to close timeline), you then use arrow keys to navigate through notes and up/down arrows to move them, and maybe shift + right/left arrow key to make it longer / shorter
+
+im just gonna use this as a journal at this point, but styling this with just css is something i never thought to be this difficult holy moly

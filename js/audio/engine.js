@@ -82,7 +82,7 @@ class SynthEngine {
     setBpm(bpm) {
         state.bpm = bpm;
         Tone.Transport.bpm.value = bpm;
-        document.getElementById('bpm-display').textContent = `BPM: ${bpm}`;
+        document.getElementById('bpm-display').textContent = `${bpm}`;
     };
 
     startTransport() {

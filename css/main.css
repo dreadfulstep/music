@@ -1,3 +1,6 @@
+@import url("css/modal.css");
+@import url("css/layout.css");
+
 :root {
   --background: oklch(0% 0 0);
   --foreground: oklch(92% 0.005 270);
@@ -224,8 +227,6 @@ body {
   position: relative;
   overflow: hidden;
   margin: 12px;
-  background: var(--background);
-  border-radius: var(--border-radius);
 }
 
 .bottom-bar {

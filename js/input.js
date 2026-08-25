@@ -1,123 +1,239 @@
 import { state } from "./state.js";
 import { engine } from "./audio/engine.js";
 
-const activeNotes = new Set();
+class InputManager {
+  constructor() {
+    this.activeNotes = new Set();
+    this.handlers = new Map(); // key -> { cb, opts }
+    /**
+     * @type {{ mods: any[]; key: any; cb: any; }[]}
+     */
+    this.comboHandlers = []; // { mods, key, cb }
+    this.audioReady = false;
 
-function updateTrackDisplay() {
-  const t = state.tracks[state.currentTrack];
-  document.getElementById("track-display").textContent =
-    `Track: ${t.id + 1} ${t.name}`;
-  document.getElementById("preset-display").textContent = `Preset: ${t.preset}`;
-}
+    this.bpmInterval = null;
+    this.bpmDelay = null;
+    this.bpmDirection = 0; // -1 or +1;
+    this.bpmSpeed = 25; // ms between ticks
+  }
 
-function highlightKey(keyChar, on) {
-  const el = document.querySelector(`[data-key="${keyChar}"`);
-  if (el) el.classList.toggle("pressed", on);
-}
+  /**
+   * @param {string} key
+   * @param {any} cb
+   */
+  onKey(key, cb, opts = {}) {
+    this.handlers.set(key.toLowerCase(), {
+      cb,
+      // @ts-ignore
+      preventDefault: opts.preventDefault !== false,
+    });
+    return this;
+  }
 
-export function initInput() {
-  const container = document.getElementById("keys");
-  const row1 = [
-    "a",
-    "w",
-    "s",
-    "e",
-    "d",
-    "f",
-    "t",
-    "g",
-    "y",
-    "h",
-    "u",
-    "j",
-    "k",
-  ];
-  const row2 = ["z", "x", "c", "v", "b", "n", "m"];
+  /**
+   * @param {any} mods
+   * @param {string} key
+   * @param {any} cb
+   */
+  onCombo(mods, key, cb) {
+    const arr = Array.isArray(mods) ? mods : [mods];
+    this.comboHandlers.push({
+      mods: arr.map((m) => m.toLowerCase()),
+      key: key.toLowerCase(),
+      cb,
+    });
+    return this;
+  }
 
-  [...row2, ...row1].forEach((k) => {
-    const note = state.keymap[k];
-    if (!note) return;
+  /**
+   * @param {KeyboardEvent} e
+   * @param {{ mods: any; key: any; cb?: any; }} combo
+   */
+  _matchCombo(e, combo) {
+    const keyFromCode = e.code.toLowerCase().replace('key', '').replace('digit', '').replace('comma', ',').replace('period', '.');
 
-    const div = document.createElement("div");
-    const isSharp = note.includes("#");
-    div.className = "key" + (isSharp ? " sharp" : "");
-    div.dataset.key = k;
-    div.textContent = k.toUpperCase();
-    container.appendChild(div);
-  });
+    const keyMatch = e.key.toLowerCase() === combo.key || keyFromCode === combo.key;
+    
+    return (
+      keyMatch &&
+      combo.mods.includes("shift") === e.shiftKey &&
+      combo.mods.includes("ctrl") === e.ctrlKey &&
+      combo.mods.includes("alt") === e.altKey
+    );
+  }
 
-  window.addEventListener("keydown", async (e) => {
-    if (e.key === "Tab") {
-      e.preventDefault();
-      return;
-    }
+  async _ensureAudio() {
+    if (this.audioReady) return;
+    await Tone.start();
+    await engine.init();
+    this.audioReady = true;
+  }
 
-    const key = e.key.toLowerCase();
+  _buildKeys() {
+    const container = document.getElementById("keys");
+    if (!container) return;
+    container.innerHTML = "";
+    const order = [
+      "z",
+      "x",
+      "c",
+      "v",
+      "b",
+      "n",
+      "m",
+      "a",
+      "w",
+      "s",
+      "e",
+      "d",
+      "f",
+      "t",
+      "g",
+      "y",
+      "h",
+      "u",
+      "j",
+      "k",
+    ];
+    order.forEach((k) => {
+      // @ts-ignore
+      const note = state.keymap[k];
+      if (!note) return;
+      const div = document.createElement("div");
+      div.className = "key" + (note.includes("#") ? " sharp" : "");
+      div.dataset.key = k;
+      div.textContent = k.toUpperCase();
+      container.appendChild(div);
+    });
+  }
 
-    if (activeNotes.has(key)) return;
-    activeNotes.add(key);
+  /**
+   * @param {any} key
+   * @param {boolean | undefined} on
+   */
+  _highlight(key, on) {
+    const el = document.querySelector(`[data-key="${key}"]`);
+    if (el) el.classList.toggle("pressed", on);
+  }
 
-    if (!engine.initialised) {
-      await Tone.start();
-      await engine.init();
-    }
+  _updateDisplays() {
+    const t = state.tracks[state.currentTrack];
+    const trackEl = document.getElementById("track-display");
+    const presetEl = document.getElementById("preset-display");
+    if (trackEl) trackEl.textContent = t ? `${t.id + 1}. ${t.name}` : "-";
+    if (presetEl) presetEl.textContent = t ? t.preset : "-";
+    this._renderTrackList();
+  }
 
-    const note = state.keymap[key];
-    if (note) {
-      engine.playNote(note);
-      highlightKey(key, true);
-      return;
-    }
+  _renderTrackList() {
+    const list = document.getElementById("track-list");
+    if (!list) return;
+    list.innerHTML = "";
+    state.tracks.forEach((t) => {
+      const div = document.createElement("div");
+      div.className =
+        "track-row" +
+        (t.id === state.currentTrack ? " active" : "") +
+        (t.muted ? " muted" : "");
+      div.innerHTML = `
+        <div class="track-color" style="background:${t.color}"></div>
+        <div class="track-info">
+          <span class="track-name">${t.name}</span>
+          <span class="track-preset">${t.preset}</span>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  };
 
-    if (key === " ") {
-      e.preventDefault();
-      state.isPlaying ? engine.stopTransport() : engine.startTransport();
-      return;
-    }
+  /**
+   * @param {number} dir
+   */
+  _startBpm(dir) {
+    if (this.bpmInterval) return;
+    this.bpmDirection = dir;
+    this.bpmSpeed = 150;
 
-    if (key >= "1" && key <= "4") {
-      state.currentTrack = parseInt(key) - 1;
-      updateTrackDisplay();
-      return;
-    }
+    const tick = () => {
+      const next = state.bpm + this.bpmDirection;
+      if (next > 0 && next <= 999) {
+        engine.setBpm(next);
+      };
+    };
 
-    if (key === "-") {
-      engine.setPreset(state.currentTrack, "pluck");
-      updateTrackDisplay();
-    }
-    if (key === "=") {
-      engine.setPreset(state.currentTrack, "subBass");
-      updateTrackDisplay();
-    }
-    if (key === "[") {
-      engine.setPreset(state.currentTrack, "lead");
-      updateTrackDisplay();
-    }
-    if (key === "]") {
-      engine.setPreset(state.currentTrack, "pad");
-      updateTrackDisplay();
-    }
+    tick();
 
-    if (key === ",") engine.setBpm(Math.max(60, state.bpm - 5));
-    if (key === ".") engine.setBpm(Math.min(200, state.bpm + 5));
+    this.bpmDelay = setTimeout(() => {
+      this.bpmInterval = setInterval(() => {
+        tick();
+        this.bpmSpeed = Math.max(20, this.bpmSpeed * 0.92); // accelerate
+        clearInterval(this.bpmInterval);
+        this.bpmInterval = setInterval(tick, this.bpmSpeed);
+      }, this.bpmSpeed);
+    }, 300); // 300ms before start the acceleration
+  };
 
-    if (key === "m") {
-      const t = state.tracks[state.currentTrack];
-      t.muted = !t.muted;
-      console.log(t.name, t.muted ? "muted" : "unmuted");
-    }
-  });
+  _stopBpm() {
+    if (this.bpmDelay) clearTimeout(this.bpmDelay);
+    clearInterval(this.bpmInterval);
+    this.bpmInterval = null;
+    this.bpmDelay = null;
+  };
 
-  window.addEventListener("keyup", (e) => {
-    const key = e.key.toLowerCase();
-    activeNotes.delete(key);
+  mount() {
+    this._buildKeys();
+    this._updateDisplays();
 
-    const note = state.keymap[key];
-    if (note) {
-      engine.stopNote(note);
-      highlightKey(key, false);
-    }
-  });
+    window.addEventListener("keydown", async (e) => {
+      if (e.key === "Tab") { e.preventDefault(); return; };
+      
+      const key = e.key.toLowerCase();
 
-  updateTrackDisplay();
-}
+      // @ts-ignore
+      if (!this.audioReady && state.keymap[key]) {
+        await this._ensureAudio();
+      };
+
+      if (this.activeNotes.has(key)) return;
+      
+      for (const combo of this.comboHandlers) {
+        if (this._matchCombo(e, combo)) {
+          e.preventDefault();
+          combo.cb();
+          return;
+        };
+      };
+
+      const h = this.handlers.get(key);
+      if (h) {
+        if (h.preventDefault) e.preventDefault();
+        h.cb();
+        return;
+      };
+
+      // @ts-ignore
+      const note = state.keymap[key];
+      if (note) {
+        engine.playNote(note);
+        this._highlight(key, true);
+      };
+    });
+
+    window.addEventListener("keyup", (e) => {
+      const key = e.key.toLowerCase();
+      this.activeNotes.delete(key);
+
+      const code = e.code.toLowerCase();
+      if (code === "comma" || code === "period") this._stopBpm();
+
+      // @ts-ignore
+      const note = state.keymap[key];
+      if (note) {
+        engine.stopNote(note);
+        this._highlight(key, false);
+      };
+    });
+  };
+};
+
+export const input = new InputManager();
