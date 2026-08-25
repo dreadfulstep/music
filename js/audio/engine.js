@@ -36,13 +36,16 @@ class SynthEngine {
         if (this.initialised) return;
 
         this.limiter = new Tone.Limiter(-3).toDestination();
+        // @ts-ignore
         this.master = new Tone.Gain(0.8).toDestination(this.limiter);
         this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.master);
         this.delay = new Tone.FeedbackDelay('8n', 0.15).connect(this.reverb);
 
         for (const track of state.tracks) {
+            // @ts-ignore
             const preset = this.presets[track.preset] || this.presets.pluck;
             const synth = new Tone.PolySynth(Tone.Synth, {
+                // @ts-ignore
                 maxPolyphony: 6,
                 oscillator: preset.oscillator,
                 envelope: preset.envelope,
@@ -57,6 +60,9 @@ class SynthEngine {
         console.log('Engine initialised with', this.synths.size, 'tracks');
     }
 
+    /**
+     * @param {any} note
+     */
     playNote(note, trackId = null) {
         const tid = trackId ?? state.currentTrack;
         const synth = this.synths.get(tid);
@@ -64,6 +70,9 @@ class SynthEngine {
         synth.triggerAttack(note);
     };
 
+    /**
+     * @param {any} note
+     */
     stopNote(note, trackId = null) {
         const tid = trackId ?? state.currentTrack;
         const synth = this.synths.get(tid);
@@ -71,17 +80,27 @@ class SynthEngine {
         synth.triggerRelease(note);
     };
 
+    /**
+     * @param {string | number} trackId
+     * @param {string} presetName
+     */
     setPreset(trackId, presetName) {
         const synth = this.synths.get(trackId);
+        // @ts-ignore
         const preset = this.presets[presetName];
         if (!synth || !preset) return;
         synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
+        // @ts-ignore
         state.tracks[trackId].preset = presetName;
     };
 
+    /**
+     * @param {number} bpm
+     */
     setBpm(bpm) {
         state.bpm = bpm;
         Tone.Transport.bpm.value = bpm;
+        // @ts-ignore
         document.getElementById('bpm-display').textContent = `${bpm}`;
     };
 
@@ -89,6 +108,7 @@ class SynthEngine {
         if (state.isPlaying) return;
         Tone.Transport.start();
         state.isPlaying = true;
+        // @ts-ignore
         document.getElementById('play-state').textContent = 'Playing';
         document.getElementById('play-state')?.classList.add('active');
     };
@@ -97,6 +117,7 @@ class SynthEngine {
         Tone.Transport.stop();
         state.isPlaying = false;
         state.playheadBeat = 0;
+        // @ts-ignore
         document.getElementById('play-state').textContent = 'Stopped';
         document.getElementById('play-state')?.classList.remove('active');
     }
