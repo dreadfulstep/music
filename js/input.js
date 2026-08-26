@@ -50,8 +50,8 @@ class InputManager {
    * @param {{ mods: any; key: any; cb?: any; }} combo
    */
   _matchCombo(e, combo) {
-    const keyFromCode = e.code.toLowerCase().replace('key', '').replace('digit', '').replace('comma', ',').replace('period', '.');
-
+    const keyFromCode = e.code.toLowerCase().replace(/^(key|digit|numpad)/, '');
+    
     const keyMatch = e.key.toLowerCase() === combo.key || keyFromCode === combo.key;
     
     return (

@@ -1,4 +1,4 @@
-import { input } from "../input";
+import { input } from "../input.js";
 
 // @ts-ignore
 class Modal {
@@ -37,10 +37,8 @@ class Modal {
      */
     open(title, renderFn) {
         this._ensureCreated();
-        // @ts-ignore
-        this.titleEl?.textContent = title || '';
-        // @ts-ignore
-        this.bodyEl?.innerHTML = '';
+        if (this.titleEl) this.titleEl.textContent = title || '';
+        if (this.bodyEl) this.bodyEl.innerHTML = '';
         if (renderFn) renderFn(this.bodyEl);
         this.dialog?.showModal();
     };

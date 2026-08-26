@@ -16,7 +16,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   input.onCombo("shift", "2", () => {}); // Open preset modal
   input.onCombo("shift", "3", () => {
         console.log("Click!")
-        modal.open("New Track")
+        modal.open("New Track", (body) => {
+                const div = document.createElement("div");
+                div.textContent = "hey!"
+                body?.appendChild(div)
+        })
   }); // Open new track modal
 
   // Mute
