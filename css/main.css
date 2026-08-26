@@ -303,3 +303,62 @@ body {
   border: 0;
 }
 
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--border-radius);
+  padding: 0;
+  width: 420px;
+  max-height: 400px;
+  color: var(--foreground);
+}
+
+.modal::backdrop {
+  background: color-mix(in oklch, var(--background) 70%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.modal-close {
+  background-color: none;
+  border: none;
+  color: var(--foreground-secondary);
+  font-size: 1.25rem;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.modal-body {
+  padding: 8px;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.modal-row {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--foreground-secondary);
+}
+
+.modal-row.selected {
+  background-color: var(--accent);
+  color: var(--background);
+}
