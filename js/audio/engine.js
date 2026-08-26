@@ -1,126 +1,131 @@
-import { state} from '../state.js';
+import { state } from "../state.js";
 
 class SynthEngine {
-    constructor() {
-        this.initialised = false;
-        this.synths = new Map(); // trackId -> PolySynth
-        this.presets = {
-            pluck: {
-                oscillator: { type: 'fattriangle', count: 2, spread: 10 },
-                envelope: { attack: 0.002, decay: 0.4, sustain: 0.15, release: 1.5 }
-            },
-            subBass: {
-                oscillator: { type: 'sine' },
-                envelope: { attack: 0.01, decay: 0.3, sustain: 0.8, release: 0.5 }
-            },
-            lead: {
-                oscillator: { type: 'sawtooth' },
-                envelope: { attack: 0.05, decay: 0.5, sustain: 0.8, release: 1.0 }
-            },
-            pad: {
-                oscillator: { type: 'square' },
-                envelope: { attack: 0.5, decay: 0.5, sustain: 0.8, release: 1.0 } 
-            },
-            noise: {
-                oscillator: { type: 'fmsine', modulationType: 'square', modulationIndex: 3, harmonicity: 3.01 },
-                envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
-            }
-        };
-        this.master = null;
-        this.limiter = null;
-        this.reverb = null;
-        this.delay = null;
+  constructor() {
+    this.initialised = false;
+    this.synths = new Map(); // trackId -> PolySynth
+    this.presets = {
+      pluck: {
+        oscillator: { type: "fattriangle", count: 2, spread: 10 },
+        envelope: { attack: 0.002, decay: 0.4, sustain: 0.15, release: 1.5 },
+      },
+      subBass: {
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.01, decay: 0.3, sustain: 0.8, release: 0.5 },
+      },
+      lead: {
+        oscillator: { type: "sawtooth" },
+        envelope: { attack: 0.05, decay: 0.5, sustain: 0.8, release: 1.0 },
+      },
+      pad: {
+        oscillator: { type: "square" },
+        envelope: { attack: 0.5, decay: 0.5, sustain: 0.8, release: 1.0 },
+      },
+      noise: {
+        oscillator: {
+          type: "fmsine",
+          modulationType: "square",
+          modulationIndex: 3,
+          harmonicity: 3.01,
+        },
+        envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 },
+      },
     };
+    this.master = null;
+    this.limiter = null;
+    this.reverb = null;
+    this.delay = null;
+  }
 
-    async init() {
-        if (this.initialised) return;
+  async init() {
+    if (this.initialised) return;
 
-        this.limiter = new Tone.Limiter(-3).toDestination();
+    this.limiter = new Tone.Limiter(-3).toDestination();
+    // @ts-ignore
+    this.master = new Tone.Gain(0.8).toDestination(this.limiter);
+    this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.master);
+    this.delay = new Tone.FeedbackDelay("8n", 0.15).connect(this.reverb);
+
+    for (const track of state.tracks) {
+      // @ts-ignore
+      const preset = this.presets[track.preset] || this.presets.pluck;
+      const synth = new Tone.PolySynth(Tone.Synth, {
         // @ts-ignore
-        this.master = new Tone.Gain(0.8).toDestination(this.limiter);
-        this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.master);
-        this.delay = new Tone.FeedbackDelay('8n', 0.15).connect(this.reverb);
+        maxPolyphony: 6,
+        oscillator: preset.oscillator,
+        envelope: preset.envelope,
+        volume: -10,
+      }).connect(this.delay);
 
-        for (const track of state.tracks) {
-            // @ts-ignore
-            const preset = this.presets[track.preset] || this.presets.pluck;
-            const synth = new Tone.PolySynth(Tone.Synth, {
-                // @ts-ignore
-                maxPolyphony: 6,
-                oscillator: preset.oscillator,
-                envelope: preset.envelope,
-                volume: -10
-            }).connect(this.delay);
-
-            this.synths.set(track.id, synth);
-        };
-        
-        Tone.Transport.bpm.value = state.bpm;
-        this.initialised = true;
-        console.log('Engine initialised with', this.synths.size, 'tracks');
+      this.synths.set(track.id, synth);
     }
 
-    /**
-     * @param {any} note
-     */
-    playNote(note, trackId = null) {
-        const tid = trackId ?? state.currentTrack;
-        const synth = this.synths.get(tid);
-        if (!synth || state.tracks[tid].muted) return;
-        synth.triggerAttack(note);
-    };
+    Tone.Transport.bpm.value = state.bpm;
+    this.initialised = true;
+    console.log("Engine initialised with", this.synths.size, "tracks");
+  }
 
-    /**
-     * @param {any} note
-     */
-    stopNote(note, trackId = null) {
-        const tid = trackId ?? state.currentTrack;
-        const synth = this.synths.get(tid);
-        if (!synth) return;
-        synth.triggerRelease(note);
-    };
+  /**
+   * @param {any} note
+   */
+  playNote(note, trackId = null) {
+    const tid = trackId ?? state.currentTrack;
+    const synth = this.synths.get(tid);
+    if (!synth || state.tracks[tid].muted) return;
+    synth.triggerAttack(note);
+  }
 
-    /**
-     * @param {string | number} trackId
-     * @param {string} presetName
-     */
-    setPreset(trackId, presetName) {
-        const synth = this.synths.get(trackId);
-        // @ts-ignore
-        const preset = this.presets[presetName];
-        if (!synth || !preset) return;
-        synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
-        // @ts-ignore
-        state.tracks[trackId].preset = presetName;
-    };
+  /**
+   * @param {any} note
+   */
+  stopNote(note, trackId = null) {
+    const tid = trackId ?? state.currentTrack;
+    const synth = this.synths.get(tid);
+    if (!synth) return;
+    synth.triggerRelease(note);
+  }
 
-    /**
-     * @param {number} bpm
-     */
-    setBpm(bpm) {
-        state.bpm = bpm;
-        Tone.Transport.bpm.value = bpm;
-        // @ts-ignore
-        document.getElementById('bpm-display').textContent = `${bpm}`;
-    };
+  /**
+   * @param {string | number} trackId
+   * @param {string} presetName
+   */
+  setPreset(trackId, presetName) {
+    const synth = this.synths.get(trackId);
+    // @ts-ignore
+    const preset = this.presets[presetName];
+    if (!synth || !preset) return;
+    synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
+    // @ts-ignore
+    state.tracks[trackId].preset = presetName;
+  }
 
-    startTransport() {
-        if (state.isPlaying) return;
-        Tone.Transport.start();
-        state.isPlaying = true;
-        // @ts-ignore
-        document.getElementById('play-state').textContent = 'Playing';
-        document.getElementById('play-state')?.classList.add('active');
-    };
+  /**
+   * @param {number} bpm
+   */
+  setBpm(bpm) {
+    state.bpm = bpm;
+    Tone.Transport.bpm.value = bpm;
+    // @ts-ignore
+    document.getElementById("bpm-display").textContent = `${bpm}`;
+  }
 
-    stopTransport() {
-        Tone.Transport.stop();
-        state.isPlaying = false;
-        state.playheadBeat = 0;
-        // @ts-ignore
-        document.getElementById('play-state').textContent = 'Stopped';
-        document.getElementById('play-state')?.classList.remove('active');
-    }
-};
+  startTransport() {
+    if (state.isPlaying) return;
+    Tone.Transport.start();
+    state.isPlaying = true;
+    // @ts-ignore
+    document.getElementById("play-state").textContent = "Playing";
+    document.getElementById("play-state")?.classList.add("active");
+  }
+
+  stopTransport() {
+    Tone.Transport.stop();
+    state.isPlaying = false;
+    state.playheadBeat = 0;
+    // @ts-ignore
+    document.getElementById("play-state").textContent = "Stopped";
+    document.getElementById("play-state")?.classList.remove("active");
+  }
+}
 
 export const engine = new SynthEngine();

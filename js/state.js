@@ -5,7 +5,7 @@ export const state = {
   currentTrack: 0,
   playheadBeat: 0,
 
-  /** 
+  /**
    * @typedef {Object} Track
    * @property {number} id
    * @property {string} name
@@ -14,7 +14,7 @@ export const state = {
    * @property {string} preset
    * @property {boolean} muted
    * @property {any[]} notes
-  */
+   */
   tracks: [
     {
       id: 0,
@@ -24,7 +24,7 @@ export const state = {
       preset: "pluck",
       muted: false,
       notes: [],
-    }
+    },
   ],
 
   keymap: {

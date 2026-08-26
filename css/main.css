@@ -156,7 +156,7 @@ body {
   background: var(--tertiary);
   border: 1px solid var(--border-strong);
   border-radius: 4px;
-  font-family: ui-monospace, 'SF Mono', monospace;
+  font-family: ui-monospace, "SF Mono", monospace;
   font-size: 0.7rem;
   color: var(--foreground);
   box-shadow: 0 2px 0 var(--border);

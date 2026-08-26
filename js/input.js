@@ -50,10 +50,11 @@ class InputManager {
    * @param {{ mods: any; key: any; cb?: any; }} combo
    */
   _matchCombo(e, combo) {
-    const keyFromCode = e.code.toLowerCase().replace(/^(key|digit|numpad)/, '');
-    
-    const keyMatch = e.key.toLowerCase() === combo.key || keyFromCode === combo.key;
-    
+    const keyFromCode = e.code.toLowerCase().replace(/^(key|digit|numpad)/, "");
+
+    const keyMatch =
+      e.key.toLowerCase() === combo.key || keyFromCode === combo.key;
+
     return (
       keyMatch &&
       combo.mods.includes("shift") === e.shiftKey &&
@@ -144,7 +145,7 @@ class InputManager {
       `;
       list.appendChild(div);
     });
-  };
+  }
 
   /**
    * @param {number} dir
@@ -158,7 +159,7 @@ class InputManager {
       const next = state.bpm + this.bpmDirection;
       if (next > 0 && next <= 999) {
         engine.setBpm(next);
-      };
+      }
     };
 
     tick();
@@ -171,53 +172,56 @@ class InputManager {
         this.bpmInterval = setInterval(tick, this.bpmSpeed);
       }, this.bpmSpeed);
     }, 300); // 300ms before start the acceleration
-  };
+  }
 
   _stopBpm() {
     if (this.bpmDelay) clearTimeout(this.bpmDelay);
     clearInterval(this.bpmInterval);
     this.bpmInterval = null;
     this.bpmDelay = null;
-  };
+  }
 
   mount() {
     this._buildKeys();
     this._updateDisplays();
 
     window.addEventListener("keydown", async (e) => {
-      if (e.key === "Tab") { e.preventDefault(); return; };
+      if (e.key === "Tab") {
+        e.preventDefault();
+        return;
+      }
       if (e.repeat) return;
-      
+
       const key = e.key.toLowerCase();
 
       // @ts-ignore
       if (!this.audioReady && state.keymap[key]) {
         await this._ensureAudio();
-      };
+      }
 
       if (this.activeNotes.has(key)) return;
-      
+
       for (const combo of this.comboHandlers) {
         if (this._matchCombo(e, combo)) {
           e.preventDefault();
           combo.cb();
           return;
-        };
-      };
+        }
+      }
 
       const h = this.handlers.get(key);
       if (h) {
         if (h.preventDefault) e.preventDefault();
         h.cb();
         return;
-      };
+      }
 
       // @ts-ignore
       const note = state.keymap[key];
       if (note) {
         engine.playNote(note);
         this._highlight(key, true);
-      };
+      }
     });
 
     window.addEventListener("keyup", (e) => {
@@ -232,9 +236,9 @@ class InputManager {
       if (note) {
         engine.stopNote(note);
         this._highlight(key, false);
-      };
+      }
     });
-  };
-};
+  }
+}
 
 export const input = new InputManager();
