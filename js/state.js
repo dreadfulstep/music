@@ -5,6 +5,16 @@ export const state = {
   currentTrack: 0,
   playheadBeat: 0,
 
+  /** 
+   * @typedef {Object} Track
+   * @property {number} id
+   * @property {string} name
+   * @property {string} color
+   * @property {string} type
+   * @property {string} preset
+   * @property {boolean} muted
+   * @property {any[]} notes
+  */
   tracks: [
     {
       id: 0,
@@ -14,34 +24,7 @@ export const state = {
       preset: "pluck",
       muted: false,
       notes: [],
-    },
-    {
-      id: 1,
-      name: "Bass",
-      color: "#4ecdc4",
-      type: "synth",
-      preset: "subBass",
-      muted: false,
-      notes: [],
-    },
-    {
-      id: 2,
-      name: "Drums",
-      color: "#ffe66d",
-      type: "synth",
-      preset: "noise",
-      muted: false,
-      notes: [],
-    },
-    {
-      id: 3,
-      name: "FX",
-      color: "#a78bfa",
-      type: "synth",
-      preset: "pad",
-      muted: false,
-      notes: [],
-    },
+    }
   ],
 
   keymap: {

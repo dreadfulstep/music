@@ -13,7 +13,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   input.onCombo("shift", "1", () => {}); // Open track modal
   input.onCombo("shift", "2", () => {}); // Open preset modal
-  input.onCombo("shift", "3", () => {}); // Open new track modal
+  input.onCombo("shift", "3", () => {
+        
+  }); // Open new track modal
 
   // Mute
   input.onCombo("shift", "m", () => {
