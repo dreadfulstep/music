@@ -186,6 +186,7 @@ class InputManager {
 
     window.addEventListener("keydown", async (e) => {
       if (e.key === "Tab") { e.preventDefault(); return; };
+      if (e.repeat) return;
       
       const key = e.key.toLowerCase();
 
