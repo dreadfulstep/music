@@ -15,6 +15,7 @@ class InputManager {
     this.bpmDelay = null;
     this.bpmDirection = 0; // -1 or +1;
     this.bpmSpeed = 25; // ms between ticks
+    this.bpmOwner = null; // what key owns active bpm adjustment
   }
 
   /**
@@ -149,9 +150,13 @@ class InputManager {
 
   /**
    * @param {number} dir
+   * @param {string | number | undefined} code
    */
-  _startBpm(dir) {
-    if (this.bpmInterval) return;
+  _startBpm(dir, code) {
+    this._stopBpm();
+
+    this.bpmOwner = code; // "comma" or "period"
+    // @ts-ignore
     this.bpmDirection = dir;
     this.bpmSpeed = 150;
 
@@ -174,11 +179,17 @@ class InputManager {
     }, 300); // 300ms before start the acceleration
   }
 
-  _stopBpm() {
-    if (this.bpmDelay) clearTimeout(this.bpmDelay);
+  /**
+   * @param {string | undefined} [code]
+   */
+  _stopBpm(code) {
+    if (code && this.bpmOwner && this.bpmOwner !== code) return; // ignore wrong key
+    // @ts-ignore
+    clearTimeout(this.bpmDelay);
     clearInterval(this.bpmInterval);
     this.bpmInterval = null;
     this.bpmDelay = null;
+    this.bpmDirection = 0;
   }
 
   mount() {
@@ -204,6 +215,7 @@ class InputManager {
       for (const combo of this.comboHandlers) {
         if (this._matchCombo(e, combo)) {
           e.preventDefault();
+          this.lastComboCode = e.code.toLowerCase();
           combo.cb();
           return;
         }
@@ -229,7 +241,7 @@ class InputManager {
       this.activeNotes.delete(key);
 
       const code = e.code.toLowerCase();
-      if (code === "comma" || code === "period") this._stopBpm();
+      if (code === "comma" || code === "period") this._stopBpm(code);
 
       // @ts-ignore
       const note = state.keymap[key];
