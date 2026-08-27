@@ -42,7 +42,7 @@ class SynthEngine {
 
     this.limiter = new Tone.Limiter(-3).toDestination();
     // @ts-ignore
-    this.master = new Tone.Gain(0.8).toDestination(this.limiter);
+    this.master = new Tone.Gain(0.8).connect(this.limiter);
     this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.master);
     this.delay = new Tone.FeedbackDelay("8n", 0.15).connect(this.reverb);
 
@@ -111,6 +111,22 @@ class SynthEngine {
 
   startTransport() {
     if (state.isPlaying) return;
+
+    state.tracks.forEach(track => {
+      if (track.muted) return;
+      const synth = this.synths.get(track.id);
+      if (!synth) return;
+
+      track.notes.forEach(note => {
+        const time = note.start * (60 / state.bpm); // beats to seconds
+        const dur = note.duration & (60 / state.bpm);
+
+        Tone.Transport.schedule((t) => {
+          synth.triggerAttackRelease(note.pitch, dur, t);
+        }, time);
+      });
+    });
+
     Tone.Transport.start();
     state.isPlaying = true;
     // @ts-ignore
@@ -120,7 +136,9 @@ class SynthEngine {
 
   stopTransport() {
     Tone.Transport.stop();
+    Tone.Transport.cancel();
     state.isPlaying = false;
+    state.isRecording = false;
     state.playheadBeat = 0;
     // @ts-ignore
     document.getElementById("play-state").textContent = "Stopped";

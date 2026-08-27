@@ -2,6 +2,15 @@ import { input } from "./input.js";
 import { state } from "./state.js";
 import { engine } from "./audio/engine.js";
 import { modal } from "./ui/modal.js";
+import { PianoRoll } from "./ui/piano-roll.js";
+
+const roll = new PianoRoll('piano-roll');
+
+function loop() {
+  roll.draw();
+  requestAnimationFrame(loop);
+};
+loop();
 
 document.addEventListener("DOMContentLoaded", async () => {
   input.onKey(
@@ -41,6 +50,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       t.muted = !t.muted;
       input._updateDisplays();
     }
+  });
+
+  // Record
+  input.onCombo("shift", "r", () => {
+    state.isRecording = !state.isRecording;
+    console.log(state.tracks)
+    console.log("Record:", state.isRecording? "active" : "inactive");
+    document.querySelector('[data-action="record"]')?.classList.toggle('active', state.isRecording);
   });
 
   // BPM

@@ -16,6 +16,8 @@ class InputManager {
     this.bpmDirection = 0; // -1 or +1;
     this.bpmSpeed = 25; // ms between ticks
     this.bpmOwner = null; // what key owns active bpm adjustment
+
+    this.pendingNotes = new Map(); // KV, { pitch, start }
   }
 
   /**
@@ -77,10 +79,33 @@ class InputManager {
     container.innerHTML = "";
     const order = [
       // Lower octave
-      "z", "1", "x", "2", "c", "v", "3", "b", "4", "n", "5", "m",
+      "z",
+      "1",
+      "x",
+      "2",
+      "c",
+      "v",
+      "3",
+      "b",
+      "4",
+      "n",
+      "5",
+      "m",
       // Upper octave
-      "a", "w", "s", "e", "d", "f", "t", "g", "y", "h", "u", "j", "k"
-    ]
+      "a",
+      "w",
+      "s",
+      "e",
+      "d",
+      "f",
+      "t",
+      "g",
+      "y",
+      "h",
+      "u",
+      "j",
+      "k",
+    ];
     order.forEach((k) => {
       // @ts-ignore
       const note = state.keymap[k];
@@ -174,6 +199,7 @@ class InputManager {
     this.bpmInterval = null;
     this.bpmDelay = null;
     this.bpmDirection = 0;
+    this.pendingNotes.clear();
   }
 
   mount() {
@@ -217,6 +243,13 @@ class InputManager {
       if (note) {
         engine.playNote(note);
         this._highlight(key, true);
+        if (state.isRecording) {
+          const beat = Tone.Transport.seconds / (60 / state.bpm);
+          this.pendingNotes.set(`${state.currentTrack}-${note}`, {
+            pitch: note,
+            start: beat,
+          });
+        }
       }
     });
 
@@ -232,6 +265,14 @@ class InputManager {
       if (note) {
         engine.stopNote(note);
         this._highlight(key, false);
+        const keyRef = `${state.currentTrack}-${note}`;
+        const pending = this.pendingNotes.get(keyRef);
+        if (pending && state.isRecording) {
+          const endBeat = Tone.Transport.seconds / (60 / state.bpm);
+          pending.duration = Math.max(0.01, endBeat - pending.start); // min 1/16 note
+          state.tracks[state.currentTrack].notes.push(pending);
+          this.pendingNotes.delete(keyRef);
+        }
       }
     });
   }
