@@ -1,5 +1,7 @@
 import { state } from "./state.js";
 import { engine } from "./audio/engine.js";
+import { modal } from "./ui/modal.js";
+import { renderTimeline } from "./timeline.js";
 
 class InputManager {
   constructor() {
@@ -199,7 +201,6 @@ class InputManager {
     this.bpmInterval = null;
     this.bpmDelay = null;
     this.bpmDirection = 0;
-    this.pendingNotes.clear();
   }
 
   mount() {
@@ -211,6 +212,9 @@ class InputManager {
         e.preventDefault();
         return;
       }
+
+      if (modal.isOpen()) return;
+
       if (e.repeat) return;
 
       const key = e.key.toLowerCase();
@@ -241,9 +245,10 @@ class InputManager {
       // @ts-ignore
       const note = state.keymap[key];
       if (note) {
+        this.activeNotes.add(key);
         engine.playNote(note);
         this._highlight(key, true);
-        if (state.isRecording) {
+        if (state.isRecording && !state.isCountingIn) {
           const beat = Tone.Transport.seconds / (60 / state.bpm);
           this.pendingNotes.set(`${state.currentTrack}-${note}`, {
             pitch: note,
@@ -267,11 +272,12 @@ class InputManager {
         this._highlight(key, false);
         const keyRef = `${state.currentTrack}-${note}`;
         const pending = this.pendingNotes.get(keyRef);
-        if (pending && state.isRecording) {
+        if (pending && state.isRecording && !state.isCountingIn) {
           const endBeat = Tone.Transport.seconds / (60 / state.bpm);
           pending.duration = Math.max(0.01, endBeat - pending.start); // min 1/16 note
           state.tracks[state.currentTrack].notes.push(pending);
           this.pendingNotes.delete(keyRef);
+          renderTimeline();
         }
       }
     });

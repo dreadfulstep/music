@@ -12,19 +12,19 @@ export function renderTimeline() {
 
     let maxBeat = 16;
     state.tracks.forEach(t => {
-        t.notes.forEach(n => maxBeat = Math.max(maxBeat, n.start, n.duration));
+        t.notes.forEach(n => maxBeat = Math.max(maxBeat, n.start + n.duration));
     });
     const timelineWidth = Math.max(800, maxBeat * PIXELS_PER_BEAT);
 
     state.tracks.forEach(track => {
         const lane = document.createElement("div");
-        lane.className = "track-row" + (track.id === state.currentTrack ? " active" : "");
+        lane.className = "track-lane" + (track.id === state.currentTrack ? " active" : "");
         lane.dataset.trackId = String(track.id);
 
         const header = document.createElement("div");
         header.className = "track-lane-header";
         header.innerHTML = `
-            <div style="width: 3px;height:100%;background:${track.color};border-radius:2px;></div>
+            <div style="width: 3px;height:100%;background:${track.color};border-radius:2px;"></div>
             <div style="display:flex;flex-direction:column;">
                 <span style="font-size:0.75rem;font-weight:500;">${track.name}</span>
                 <span style="font-size:0.65rem;color:var(--foreground-tertiary);text-transform:uppercase;">${track.preset}</span>

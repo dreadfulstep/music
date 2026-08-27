@@ -19,6 +19,7 @@ export const state = {
   bpm: 120,
   isPlaying: false,
   isRecording: false,
+  isCountingIn: false,
   currentTrack: 0,
   playheadBeat: 0,
 

@@ -115,12 +115,13 @@ class SynthEngine {
    */
   addTrack(track) {
     if (!this.delay) return;
+    // @ts-ignore
     const preset = this.presets[track.preset] || this.presets.pluck;
     const synth = new Tone.PolySynth(Tone.Synth, {
         // @ts-ignore
         maxPolyphony: 6,
         oscillator: preset.oscillator,
-        envelope: preset.envelopem,
+        envelope: preset.envelope,
         volume: -10,
     }).connect(this.delay);
     this.synths.set(track.id, synth);
@@ -154,6 +155,7 @@ class SynthEngine {
 
   stopTransport() {
     Tone.Transport.stop();
+    Tone.Transport.position = 0;
     Tone.Transport.cancel();
     state.isPlaying = false;
     state.isRecording = false;

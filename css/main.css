@@ -171,7 +171,7 @@ body {
 
 .navbar {
   margin: 12px 12px 0 12px;
-  height: 44px;
+  height: 48px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--border-radius);
@@ -185,18 +185,18 @@ body {
 .nav-group {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .nav-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: calc(var(--border-radius) / 2);
+  border-radius: 10px;
   color: var(--foreground-secondary);
   font-size: 0.85rem;
   cursor: pointer;
@@ -312,18 +312,20 @@ body {
   border: 1px solid var(--border-strong);
   border-radius: var(--border-radius);
   padding: 0;
-  width: 420px;
-  max-height: 400px;
+  width: 440px;
+  max-height: 420px;
   color: var(--foreground);
   position: fixed;
   inset: 0;
   margin: auto;
   height: fit-content;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
 }
 
 .modal::backdrop {
-  background: color-mix(in oklch, var(--background) 70%, transparent);
-  backdrop-filter: blur(4px);
+  background: color-mix(in oklch, var(--background) 75%, transparent);
+  backdrop-filter: blur(6px);
 }
 
 .modal-header {
@@ -337,26 +339,28 @@ body {
 .modal-title {
   font-weight: 600;
   font-size: 0.95rem;
+  letter-spacing: -0.01rem;
 }
 
 .modal-close {
   background: none;
   border: none;
   color: var(--foreground-secondary);
-  font-size: 1.25rem;
+  font-size: 0.8rem;
+  font-family: monospace;
   padding: 0;
-  width: 28px;
-  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
 }
 
 .modal-body {
   padding: 8px;
   overflow-y: auto;
-  max-height: 320px;
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .modal-row {
@@ -364,11 +368,36 @@ body {
   border-radius: 8px;
   font-size: 0.9rem;
   color: var(--foreground-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.08s;
 }
 
 .modal-row.selected {
-  background-color: var(--accent);
-  color: var(--background);
+  background-color: color-mix(in oklch, var(--accent) 30%, transparent);
+  color: var(--foreground);
+}
+
+.modal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+}
+
+.modal-label {
+  flex: 1;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.modal-meta {
+  font-size: 0.75rem;
+  color: var(--foreground-secondary);
+  font-family: ui-monospace, "SF Mono", monospace;
 }
 
 .timeline {
