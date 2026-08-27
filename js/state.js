@@ -21,7 +21,7 @@ export const state = {
   isRecording: false,
   currentTrack: 0,
   playheadBeat: 0,
-  
+
   /** @type {Track[]} */
   tracks: [
     {
@@ -29,7 +29,7 @@ export const state = {
       name: "Lead",
       color: "#ff6b9d",
       type: "synth",
-      preset: "pluck",
+      preset: "subBass",
       muted: false,
       notes: [],
     },

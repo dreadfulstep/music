@@ -109,6 +109,23 @@ class SynthEngine {
     document.getElementById("bpm-display").textContent = `${bpm}`;
   }
 
+  /**
+   * 
+   * @param {import("../state.js").Track} track 
+   */
+  addTrack(track) {
+    if (!this.delay) return;
+    const preset = this.presets[track.preset] || this.presets.pluck;
+    const synth = new Tone.PolySynth(Tone.Synth, {
+        // @ts-ignore
+        maxPolyphony: 6,
+        oscillator: preset.oscillator,
+        envelope: preset.envelopem,
+        volume: -10,
+    }).connect(this.delay);
+    this.synths.set(track.id, synth);
+  };
+
   startTransport() {
     if (state.isPlaying) return;
 

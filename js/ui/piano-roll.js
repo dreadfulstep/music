@@ -5,27 +5,33 @@ export class PianoRoll {
    * @param {string} canvasId
    */
   constructor(canvasId) {
-    this.canvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById(canvasId));
+    this.canvas = /** @type {HTMLCanvasElement|null} */ (
+      document.getElementById(canvasId)
+    );
     if (!this.canvas) return;
-    this.ctx = /** @type {CanvasRenderingContext2D} */ (this.canvas.getContext("2d"));
+    this.ctx = /** @type {CanvasRenderingContext2D} */ (
+      this.canvas.getContext("2d")
+    );
     this.resize();
     window.addEventListener("resize", () => this.resize());
   }
 
   resize() {
     if (!this.canvas) return;
-    const parent = this.canvas?.parentElement;
-    this.canvas.width = parent?.clientWidth;
-    this.canvas.height = parent?.clientHeight;
+    const parent = this.canvas.parentElement;
+    if (!parent) return;
+    this.canvas.width = parent.clientWidth;
+    this.canvas.height = parent.clientHeight;
   }
 
   // Map note name to Y position (C3 bottom, C5 top)
-  
+
   /**
-   * 
-   * @param {string} note 
+   *
+   * @param {string} note
    */
   _noteToY(note) {
+    if (!this.canvas) return 0;
     const notes = [
       "C",
       "C#",
@@ -48,21 +54,23 @@ export class PianoRoll {
     // C3 = 0, C5 = 24 semitones
     const semitone = (octave - 3) * 12 + noteIdx;
     const totalKeys = 25; // C3 to C5
-    const keyHeight = this.canvas?.height / totalKeys;
-    return this.canvas?.height - (semitone + 1) * keyHeight;
+    const keyHeight = this.canvas.height / totalKeys;
+    return this.canvas.height - (semitone + 1) * keyHeight;
   }
 
   /**
    * @param {number} beat
    */
   _beatToX(beat) {
+    if (!this.canvas) return 0;
     const beatsVisible = 16;
-    return (beat / beatsVisible) * this.canvas?.width;
+    return (beat / beatsVisible) * this.canvas.width;
   }
 
   draw() {
     if (!this.ctx || !this.canvas) return;
-    const { width, height } = this.canvas;
+    const width = this.canvas.width;
+    const height = this.canvas.height;
     const ctx = this.ctx;
 
     ctx.fillStyle = "#0a0a0a";
@@ -113,7 +121,7 @@ export class PianoRoll {
       const x = this._beatToX(note.start);
       const w = this._beatToX(note.duration);
       const y = this._noteToY(note.pitch);
-      const h = this.canvas?.height / 25;
+      const h = height / 25;
       ctx.fillRect(x, y, w, h);
     });
 

@@ -229,6 +229,8 @@ body {
   position: relative;
   overflow: hidden;
   margin: 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .bottom-bar {
@@ -367,4 +369,59 @@ body {
 .modal-row.selected {
   background-color: var(--accent);
   color: var(--background);
+}
+
+.timeline {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.track-lane {
+  display: flex;
+  height: 72px;
+  min-width: max-content;
+}
+
+.track-lane.active {
+  background: var(--surface-hover);
+}
+
+.track-lane-header {
+  width: 120px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.track-lane-roll {
+  position: relative;
+  height: 100%;
+}
+
+.track-roll-canvas {
+  display: block;
+  height: 100%;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fff;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(255,255,255, 0.3);
 }
