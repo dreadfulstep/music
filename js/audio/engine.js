@@ -118,8 +118,9 @@ class SynthEngine {
       if (!synth) return;
 
       track.notes.forEach(note => {
+        if (!note.duration || note.duration <= 0) return;
         const time = note.start * (60 / state.bpm); // beats to seconds
-        const dur = note.duration & (60 / state.bpm);
+        const dur = note.duration * (60 / state.bpm);
 
         Tone.Transport.schedule((t) => {
           synth.triggerAttackRelease(note.pitch, dur, t);

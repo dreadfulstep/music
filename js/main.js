@@ -4,19 +4,24 @@ import { engine } from "./audio/engine.js";
 import { modal } from "./ui/modal.js";
 import { PianoRoll } from "./ui/piano-roll.js";
 
-const roll = new PianoRoll('piano-roll');
+const roll = new PianoRoll("piano-roll");
 
 function loop() {
   roll.draw();
   requestAnimationFrame(loop);
-};
+}
 loop();
 
 document.addEventListener("DOMContentLoaded", async () => {
   input.onKey(
     " ",
     () => {
-      state.isPlaying ? engine.stopTransport() : engine.startTransport();
+      if (state.isPlaying) {
+        engine.stopTransport();
+      } else {
+        state.isRecording = false; // ensures not recording
+        engine.startTransport();
+      }
     },
     { preventDefault: true },
   );
@@ -54,10 +59,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Record
   input.onCombo("shift", "r", () => {
-    state.isRecording = !state.isRecording;
-    console.log(state.tracks)
-    console.log("Record:", state.isRecording? "active" : "inactive");
-    document.querySelector('[data-action="record"]')?.classList.toggle('active', state.isRecording);
+    if (state.isRecording) {
+      engine.stopTransport();
+    } else {
+      state.isRecording = true;
+      engine.startTransport();
+    }
   });
 
   // BPM
