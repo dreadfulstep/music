@@ -270,8 +270,8 @@ body {
 }
 
 .key {
-  width: 36px;
-  height: 100px;
+  width: 64px;
+  height: 150px;
   background: var(--foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -280,16 +280,16 @@ body {
   justify-content: center;
   padding-bottom: 8px;
   font-family: ui-monospace, "SF Mono", monospace;
-  font-size: 0.7rem;
+  font-size: 1.2rem;
   color: var(--background);
 }
 
 .key.sharp {
-  width: 28px;
-  height: 64px;
+  width: 48px;
+  height: 80px;
   background: var(--background);
   color: var(--foreground);
-  margin: 0 -14px;
+  margin: 0 -26px;
   z-index: 2;
 }
 

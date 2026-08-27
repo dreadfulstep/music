@@ -76,27 +76,11 @@ class InputManager {
     if (!container) return;
     container.innerHTML = "";
     const order = [
-      "z",
-      "x",
-      "c",
-      "v",
-      "b",
-      "n",
-      "m",
-      "a",
-      "w",
-      "s",
-      "e",
-      "d",
-      "f",
-      "t",
-      "g",
-      "y",
-      "h",
-      "u",
-      "j",
-      "k",
-    ];
+      // Lower octave
+      "z", "1", "x", "2", "c", "v", "3", "b", "4", "n", "5", "m",
+      // Upper octave
+      "a", "w", "s", "e", "d", "f", "t", "g", "y", "h", "u", "j", "k"
+    ]
     order.forEach((k) => {
       // @ts-ignore
       const note = state.keymap[k];
