@@ -2,10 +2,7 @@ import { input } from "./input.js";
 import { state } from "./state.js";
 import { engine } from "./audio/engine.js";
 import { modal } from "./ui/modal.js";
-import { PianoRoll } from "./ui/piano-roll.js";
 import { renderTimeline } from "./timeline.js";
-
-const roll = new PianoRoll("piano-roll");
 
 const timeline = document.getElementById("timeline");
 const playhead = document.getElementById("playhead");
@@ -26,12 +23,6 @@ function updatePlayhead() {
 
   requestAnimationFrame(updatePlayhead);
 }
-
-function loop() {
-  roll.draw();
-  requestAnimationFrame(loop);
-}
-loop();
 
 document.addEventListener("DOMContentLoaded", async () => {
   input.onKey(
