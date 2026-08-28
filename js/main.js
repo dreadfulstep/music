@@ -6,6 +6,13 @@ import { renderTimeline } from "./timeline.js";
 
 const timeline = document.getElementById("timeline");
 const playhead = document.getElementById("playhead");
+/**
+ * @type {number | null | undefined}
+ */
+let countdownInterval = null;
+
+// @ts-ignore
+lucide.createIcons();
 
 function updatePlayhead() {
   if (!state.isPlaying || !timeline || !playhead) return;
@@ -24,16 +31,72 @@ function updatePlayhead() {
   requestAnimationFrame(updatePlayhead);
 }
 
+function updateTransportButtons() {
+  const playBtn = document.querySelector('[data-action="play"]');
+  const stopBtn = document.querySelector('[data-action="stop"]');
+  const recBtn = document.querySelector('[data-action="record"]');
+  if (playBtn) playBtn.classList.toggle("active", state.isPlaying);
+  if (stopBtn) stopBtn.classList.toggle("active", !state.isPlaying);
+  if (recBtn) {
+    recBtn.classList.remove("active", "counting");
+    if (state.isRecording) recBtn.classList.add("active");
+    else if (state.isCountingIn) recBtn.classList.add("counting");
+  }
+}
+
+function clearCountdown() {
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  };
+  const el = document.getElementById("countdown");
+  if (el) el.style.display = "none";
+}
+
+function stopAll() {
+  engine.stopTransport();
+  state.isRecording = false;
+  state.isCountingIn = false;
+  clearCountdown();
+  updateTransportButtons();
+}
+
+function startCountdown() {
+  state.isCountingIn = true;
+  updateTransportButtons();
+  let count = 3;
+  const overlay = document.getElementById("countdown");
+  const numberEl = overlay?.querySelector(".countdown-number");
+  if (overlay) overlay.style.display = "flex";
+  if (numberEl) numberEl.textContent = String(count);
+  countdownInterval = setInterval(() => {
+    count--;
+    if (numberEl) numberEl.textContent = count > 0 ? String(count) : "●";
+    if (count <= 0) {
+      // @ts-ignore
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      state.isCountingIn = false;
+      state.isRecording = true;
+      engine.startTransport();
+      updatePlayhead();
+      updateTransportButtons();
+      if (overlay) overlay.style.display = "none";
+    };
+  }, 1000);
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   input.onKey(
     " ",
     () => {
       if (state.isPlaying) {
-        engine.stopTransport();
+        stopAll();
       } else {
-        state.isRecording = false; // ensures not recording
+        stopAll(); // clear all
         engine.startTransport();
         updatePlayhead();
+        updateTransportButtons();
       }
     },
     { preventDefault: true },
@@ -122,18 +185,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Record
   input.onCombo("shift", "r", () => {
     if (state.isRecording) {
-      engine.stopTransport();
-      state.isRecording = false;
+      stopAll();
     } else {
-      state.isCountingIn = true;
-      engine.startTransport();
-      updatePlayhead();
-      setTimeout(() => {
-        if (state.isCountingIn) {
-          state.isCountingIn = false;
-          state.isRecording = true;
-        }
-      }, 3000)
+      startCountdown();
     }
   });
 

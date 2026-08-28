@@ -16,6 +16,9 @@
 
   --accent: oklch(0.61 0.23 305);
 
+  --record: oklch(0.55 0.22 25);
+  --record-glow: oklch(0.55 0.22 25 / 0.3);
+
   --border-radius: 1rem;
 }
 
@@ -23,6 +26,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* Bad practise for accessibility but in my UX skills i pray */
@@ -178,19 +183,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 16px;
   flex-shrink: 0;
 }
 
 .nav-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .nav-btn {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -199,15 +204,63 @@ body {
   border-radius: 10px;
   color: var(--foreground-secondary);
   font-size: 0.8rem;
-  transform: all 0.15s;
+  transform: all 0.12s ease;
   font-family: inherit;
 }
 
-.nav-btn.active {
-  background: var(--accent);
-  border-color: transparent;
+.nav-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
+}
+
+.nav-btn[data-action="play"].active {
+  background: var(--surface-hover);
+  color: var(--foreground);
+}
+
+.nav-btn[data-action="record"].active {
+  background: var(--record);
+  border-color: var(--record);
   color: var(--background);
-  box-shadow: 0 0 16px color-mix(in oklch, var(--accent) 40%, transparent);
+  box-shadow: 0 0 12px var(--record-glow);
+}
+
+.nav-btn[data-action="record"].active {
+  fill: currentColor;
+}
+
+.nav-btn[data-action="record"].counting {
+  border-color: var(--border-strong);
+  color: var(--foreground);
+  background: var(--surface-hover);
+  animation: pulse-amber 1s ease-in-out infinite;
+}
+
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in oklch, var(--background) 40%, transparent);
+  backdrop-filter: blur(8px);
+  z-index: 30;
+  pointer-events: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-number {
+  font-size: clamp(4rem, 12vw, 10rem);
+  font-weight: 700;
+  color: var(--accent);
+  font-family: ui-monospace, "SF Mono", monospace;
+  text-shadow: 0 0 60px color-mix(in oklch, var(--accent) 40%, transparent);
+  animation: pop-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.6); opacity: 0;}
+  to { transform: scale(1); opacity: 1;}
 }
 
 .nav-readout {
@@ -383,10 +436,10 @@ body {
 .modal-dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;;
+  border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .modal-label {
@@ -454,5 +507,5 @@ body {
   background: #fff;
   pointer-events: none;
   z-index: 10;
-  box-shadow: 0 0 8px rgba(255,255,255, 0.3);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }

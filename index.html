@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Music</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module" src="js/main.js"></script>
     <link rel="stylesheet" href="css/main.css" />
   </head>
@@ -40,7 +41,7 @@
             <span class="version">v1.0.0</span>
           </div>
         </div>
-        
+
         <div class="sidebar-section controls-section">
           <div class="section-title">Controls</div>
 
@@ -74,13 +75,10 @@
         <nav class="navbar">
           <div class="nav-group">
             <button class="nav-btn" data-action="play" tabindex="-1">
-              Play
-            </button>
-            <button class="nav-btn" data-action="stop" tabindex="-1">
-              Stop
+              <i data-lucide="play"></i>
             </button>
             <button class="nav-btn" data-action="record" tabindex="-1">
-              Record
+              <i data-lucide="square"></i>
             </button>
           </div>
           <div class="nav-group">
@@ -92,8 +90,11 @@
         </nav>
 
         <div class="workspace">
+          <div id="countdown" class="countdown-overlay">
+            <span class="countdown-number">3</span>
+          </div>
           <div class="timeline" id="timeline">
-            <div class="playhead" id="playhead" style="left: 120px;"></div>
+            <div class="playhead" id="playhead" style="left: 120px"></div>
           </div>
           <div id="keys"></div>
         </div>
