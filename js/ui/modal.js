@@ -56,7 +56,7 @@ class Modal {
       return;
     };
 
-    if (e.key === "ArrowUp" (e.key.toLowerCase()) === "w") {
+    if (e.key === "ArrowUp" || (e.key.toLowerCase()) === "w") {
       e.preventDefault();
       this.selectedIndex = (this.selectedIndex - 1 + this.items.length) % this.items.length;
       this._updateSelection();
