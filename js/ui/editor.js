@@ -47,7 +47,7 @@ export class EditorModal {
     this.dialog = document.createElement("dialog");
     this.dialog.classList = "editor-modal";
     this.dialog.innerHTML = `
-        <div class="editor-layout>
+        <div class="editor-layout">
             <aside class="editor-sidebar">
                 <div class="editor-sidebar-title">Editor</div>
                 <nav class="editor-tabs"></nav>

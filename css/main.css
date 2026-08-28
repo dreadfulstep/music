@@ -511,3 +511,66 @@ body {
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
+dialog.editor-modal {
+  width: 960px;
+  height: 680px;
+  max-width: calc(100vw-48px);
+  max-height: calc(100vh-48px);
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  color: var(--foreground);
+  overflow: hidden;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.editor-modal::backdrop {
+  background: color-mix(in oklch, var(--background) 75%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.editor-layout {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+}
+
+.editor-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  max-width: 200px;
+  height: 100%;
+  flex: 0 0 220px;
+  background: var(--secondary);
+  border-right: 1px solid var(--border-strong);
+  padding: 24px 0 20px;
+  overflow: hidden;
+}
+
+.editor-sidebar-title {
+  padding: 0 20px 16px;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.editor-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: 28px;
+  overflow: hidden;
+}
