@@ -3,6 +3,7 @@ import { state } from "./state.js";
 import { engine } from "./audio/engine.js";
 import { modal } from "./ui/modal.js";
 import { renderTimeline } from "./timeline.js";
+import { editorModal } from "./ui/editor.js";
 
 const timeline = document.getElementById("timeline");
 const playhead = document.getElementById("playhead");
@@ -194,6 +195,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // BPM
   input.onCombo("shift", "<", () => input._startBpm(-1, input.lastComboCode));
   input.onCombo("shift", ">", () => input._startBpm(1, input.lastComboCode));
+
+  input.onCombo("shift", "e", () => {
+    if (!editorModal.isOpen()) editorModal.open();
+  })
 
   input.mount();
   renderTimeline();

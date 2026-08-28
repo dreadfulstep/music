@@ -44,19 +44,19 @@ class Modal {
    * @returns 
    */
   _handleKey(e) {
-    if (e.key === "Escape") {
+    if (e.key === "Escape" || e.key === "x") {
       this.close();
       return;
     };
 
-    if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown" || (e.key.toLowerCase()) === "s") {
       e.preventDefault();
       this.selectedIndex = (this.selectedIndex + 1) % this.items.length;
       this._updateSelection();
       return;
     };
 
-    if (e.key === "ArrowUp") {
+    if (e.key === "ArrowUp" (e.key.toLowerCase()) === "w") {
       e.preventDefault();
       this.selectedIndex = (this.selectedIndex - 1 + this.items.length) % this.items.length;
       this._updateSelection();

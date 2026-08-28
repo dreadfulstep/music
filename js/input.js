@@ -2,6 +2,7 @@ import { state } from "./state.js";
 import { engine } from "./audio/engine.js";
 import { modal } from "./ui/modal.js";
 import { renderTimeline } from "./timeline.js";
+import { editorModal } from "./ui/editor.js";
 
 class InputManager {
   constructor() {
@@ -213,7 +214,7 @@ class InputManager {
         return;
       }
 
-      if (modal.isOpen()) return;
+      if (modal.isOpen() || editorModal.isOpen()) return;
 
       if (e.repeat) return;
 

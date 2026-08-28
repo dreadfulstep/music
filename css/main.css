@@ -20,6 +20,7 @@
   --record-glow: oklch(0.55 0.22 25 / 0.3);
 
   --border-radius: 1rem;
+  --border-radius-sm: 0.5rem;
 }
 
 * {
@@ -509,3 +510,4 @@ body {
   z-index: 10;
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
+
