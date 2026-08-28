@@ -4,6 +4,7 @@ class SynthEngine {
   constructor() {
     this.initialised = false;
     this.synths = new Map(); // trackId -> PolySynth
+    this.playingNotes = new Map(); // "tid-note" true (preventing double-triggers)
     this.presets = {
       pluck: {
         oscillator: { type: "fattriangle", count: 2, spread: 10 },
@@ -33,6 +34,7 @@ class SynthEngine {
     };
     this.master = null;
     this.limiter = null;
+    this.compressor = null;
     this.reverb = null;
     this.delay = null;
   }
@@ -40,9 +42,9 @@ class SynthEngine {
   async init() {
     if (this.initialised) return;
 
-    this.limiter = new Tone.Limiter(-3).toDestination();
-    // @ts-ignore
-    this.master = new Tone.Gain(0.8).connect(this.limiter);
+    this.limiter = new Tone.Limiter(-2).toDestination();
+    this.compressor = new Tone.Compressor(-24, 4).connect(this.limiter);
+    this.master = new Tone.Gain(0.55).connect(this.limiter);
     this.reverb = new Tone.Reverb({ decay: 2, wet: 0.2 }).connect(this.master);
     this.delay = new Tone.FeedbackDelay("8n", 0.15).connect(this.reverb);
 
@@ -51,10 +53,10 @@ class SynthEngine {
       const preset = this.presets[track.preset] || this.presets.pluck;
       const synth = new Tone.PolySynth(Tone.Synth, {
         // @ts-ignore
-        maxPolyphony: 6,
+        maxPolyphony: 16,
         oscillator: preset.oscillator,
         envelope: preset.envelope,
-        volume: -10,
+        volume: -12,
       }).connect(this.delay);
 
       this.synths.set(track.id, synth);
@@ -62,7 +64,6 @@ class SynthEngine {
 
     Tone.Transport.bpm.value = state.bpm;
     this.initialised = true;
-    console.log("Engine initialised with", this.synths.size, "tracks");
   }
 
   /**
@@ -70,8 +71,11 @@ class SynthEngine {
    */
   playNote(note, trackId = null) {
     const tid = trackId ?? state.currentTrack;
+    const key = `${tid}-${note}`;
+    if (this.playingNotes.has(key)) return; // already sounding
     const synth = this.synths.get(tid);
     if (!synth || state.tracks[tid].muted) return;
+    this.playingNotes.set(key, true);
     synth.triggerAttack(note);
   }
 
@@ -80,8 +84,10 @@ class SynthEngine {
    */
   stopNote(note, trackId = null) {
     const tid = trackId ?? state.currentTrack;
+    const key = `${tid}-${note}`;
     const synth = this.synths.get(tid);
     if (!synth) return;
+    this.playingNotes.delete(key);
     synth.triggerRelease(note);
   }
 
@@ -119,10 +125,10 @@ class SynthEngine {
     const preset = this.presets[track.preset] || this.presets.pluck;
     const synth = new Tone.PolySynth(Tone.Synth, {
         // @ts-ignore
-        maxPolyphony: 6,
+        maxPolyphony: 16,
         oscillator: preset.oscillator,
         envelope: preset.envelope,
-        volume: -10,
+        volume: -12,
     }).connect(this.delay);
     this.synths.set(track.id, synth);
   };

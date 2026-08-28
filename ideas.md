@@ -19,3 +19,8 @@ Current to-do:
 Tracks (yeah very detailed, i know)
 The navbar is lacking, same with bottombar
 Settings modal for like volume, and anything else (potentially light mode?)
+
+Bug i've noticed: If you spam SHIFT + R it ends up being really weird, my brain is too tired to explain so imma go sleep and i forgot what it was but it reset the countdown or something (make it like toggle recording including when counting down probably)
+
+New plan: Edit timeline, settings etc etc all in a large modal that has a sidebar with tabs for settings (light mode, etc), tracks (change all tracks presets, their bpm etc),
+uhh timeline to view a specific track timeline and edit it. Potentially i will replace the existing modals with this since it would look far cleaner, and a tab to see all the keybinds (and edit them maybe?)
