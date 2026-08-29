@@ -6,7 +6,7 @@ const TAB_ICONS = {
   timeline: "bar-chart-2",
   preset: "sliders-horizontal",
   custom: "cpu",
-  settings: "settings"
+  settings: "settings",
 };
 
 export class EditorModal {
@@ -141,10 +141,57 @@ export class EditorModal {
     else if (tab === "settings") this._handleSettingsKey(e);
   }
 
+  _pitchToSemitone(pitch) {
+    const notes = [
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
+    ];
+    const match = pitch.map(/^([A-G]#?)(\d)$/);
+    if (!match) return 0;
+    const [, name, oct] = match;
+    return (parseInt(oct) - 3) * 12 + notes.indexOf(name);
+  }
+
+  _semitoneToPitch(semitone) {
+    const notes = [
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
+    ];
+    const octave = Math.floor(semitone / 12) + 3;
+    const note = notes[((semitone % 12) + 12) % 12];
+    return note + octave;
+  }
+
   /** @param {KeyboardEvent} e */
   _handleTimelineKey(e) {
     const track = state.tracks[state.currentTrack];
     const notes = track.notes || [];
+    const note =
+      notes.length > 0 &&
+      this.selectedNoteIndex >= 0 &&
+      this.selectedNoteIndex < notes.length
+        ? notes[this.selectedNoteIndex]
+        : null;
 
     if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -161,9 +208,23 @@ export class EditorModal {
       this._renderTimeline();
       return;
     }
-    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+
+    // Move a note or whatever
+    if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && !e.shiftKey) {
       e.preventDefault();
-      const note = notes[this.selectedNoteIndex];
+      if (note) {
+        note.start = Math.max(0, note.start - 0.25);
+        this._renderTimeline();
+        renderTimeline();
+      }
+      return;
+    }
+
+    if (
+      (e.key === "ArrowRight" || e.key.toLowerCase() === "d") &&
+      !e.shiftKey
+    ) {
+      e.preventDefault();
       if (note) {
         note.start += 0.25;
         this._renderTimeline();
@@ -171,14 +232,44 @@ export class EditorModal {
       }
       return;
     }
-    if (e.key === "Delete" || e.key === "Backspace") {
+
+    if ((e.key === "Arrowleft" || e.key.toLowerCase() === "a") && e.shiftKey) {
       e.preventDefault();
-      if (notes[this.selectedNoteIndex]) {
-        notes.splice(this.selectedNoteIndex, 1);
-        this.selectedNoteIndex = Math.min(
-          this.selectedNoteIndex,
-          notes.length - 1,
-        );
+      if (note) {
+        note.duration = Math.max(0.0625, note.duration - 0.25);
+        this._renderTimeline();
+        renderTimeline();
+      }
+      return;
+    }
+
+    if ((e.key === "ArrowRight" || e.key.toLowerCase() === "d") && e.shiftKey) {
+      e.preventDefault();
+      if (note) {
+        note.duration += 0.25;
+        this._renderTimeline();
+        renderTimeline();
+      }
+      return;
+    }
+
+    // change pitch
+    if (e.key === "[" || e.key.toLowerCase() === "q") {
+      e.preventDefault();
+      if (note) {
+        const s = this._pitchToSemitone(note.pitch);
+        note.pitch = this._semitoneToPitch(Math.max(0, s - 1));
+        this._renderTimeline();
+        renderTimeline();
+      }
+      return;
+    }
+
+    if (e.key === "]" || e.key.toLowerCase() === "e") {
+      e.preventDefault();
+      if (note) {
+        const s = this._pitchToSemitone(note.pitch);
+        note.pitch = this._semitoneToPitch(Math.min(24, s + 1));
         this._renderTimeline();
         renderTimeline();
       }
@@ -424,16 +515,19 @@ export class EditorModal {
 
   _renderCustom() {
     const fields = [
-      { key: "oscType", label: "Oscillator", type: "choice"},
-      { key: "attack", label: "Attack", type: "number", unit: "s"},
+      { key: "oscType", label: "Oscillator", type: "choice" },
+      { key: "attack", label: "Attack", type: "number", unit: "s" },
       { key: "decay", label: "Decay", type: "number", unit: "s" },
-      { key: "sustain", label: "Sustain", type: "number", unit: ""},
-      { key: "release", label: "Release", type: "number", unit: "s"}
+      { key: "sustain", label: "Sustain", type: "number", unit: "" },
+      { key: "release", label: "Release", type: "number", unit: "s" },
     ];
     let html = `<div class="editor-panel-title">Custom Synth</div><div clas="editor-list">`;
     fields.forEach((f, i) => {
       const sel = i === this.selectedCustomField ? " selected" : "";
-      const val = f.type === "number" ? this.customValues[f.key].toFixed(3) : this.customValues[f.key];
+      const val =
+        f.type === "number"
+          ? this.customValues[f.key].toFixed(3)
+          : this.customValues[f.key];
       html += `<div class="editor-row${sel}"><span>${f.label}</span><span class="editor-row-value">${val}${f.unit || ""}</span></div>`;
     });
     html += `</div><div class="editor-hint-row">↑/↓ select · A/D adjust</div>`;
