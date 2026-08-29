@@ -2,6 +2,22 @@ import { state } from "../state.js";
 import { engine } from "../audio/engine.js";
 import { renderTimeline } from "../timeline.js";
 
+/** @typedef {import("../state.js").Note} Note */
+/** @typedef {import("../state.js").Track} Track */
+
+/**
+ * @typedef {Object} EditorField
+ * @property {string} key
+ * @property {string} label
+ * @property {"choice"|"number"} type
+ * @property {string[]} [options]
+ * @property {number} [min]
+ * @property {number} [max]
+ * @property {number} [step]
+ * @property {string} [unit]
+ */
+
+/** @type {Record<string, string>} */
 const TAB_ICONS = {
   timeline: "bar-chart-2",
   preset: "sliders-horizontal",
@@ -11,8 +27,11 @@ const TAB_ICONS = {
 
 export class EditorModal {
   constructor() {
+    /** @type {HTMLDialogElement|null} */
     this.dialog = null;
+    /** @type {HTMLElement|null} */
     this.contentEl = null;
+    /** @type {HTMLElement[]} */
     this.tabEls = [];
     this.activeTab = 0;
     this.opened = false;
@@ -22,6 +41,7 @@ export class EditorModal {
     this.selectedCustomField = 0;
     this.selectedSettingIndex = 0;
 
+    /** @type {Record<string, string|number>} */
     this.customValues = {
       oscType: "sawtooth",
       attack: 0.05,
@@ -71,6 +91,7 @@ export class EditorModal {
     `;
 
     const nav = this.dialog.querySelector(".editor-tabs");
+    if (!nav) return;
     this._tabs.forEach((t, i) => {
       const btn = document.createElement("button");
       btn.className = "editor-tab";
@@ -141,6 +162,7 @@ export class EditorModal {
     else if (tab === "settings") this._handleSettingsKey(e);
   }
 
+  /** @param {string} pitch */
   _pitchToSemitone(pitch) {
     const notes = [
       "C",
@@ -156,12 +178,13 @@ export class EditorModal {
       "A#",
       "B",
     ];
-    const match = pitch.map(/^([A-G]#?)(\d)$/);
+    const match = pitch.match(/^([A-G]#?)(\d)$/);
     if (!match) return 0;
     const [, name, oct] = match;
     return (parseInt(oct) - 3) * 12 + notes.indexOf(name);
   }
 
+  /** @param {number} semitone */
   _semitoneToPitch(semitone) {
     const notes = [
       "C",
@@ -275,6 +298,31 @@ export class EditorModal {
       }
       return;
     }
+
+    if (e.key.toLowerCase() === "n") {
+      e.preventDefault();
+      const last = notes[notes.length - 1];
+      const start = last ? last.start + last.duration : 0;
+      track.notes.push({ pitch: "C4", start, duration: 0.5 });
+      this.selectedNoteIndex = notes.length - 1;
+      this._renderTimeline();
+      renderTimeline();
+      return;
+    }
+
+    if (e.key == "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      if (notes[this.selectedNoteIndex]) {
+        notes.splice(this.selectedNoteIndex, 1);
+        this.selectedNoteIndex = Math.min(
+          this.selectedNoteIndex,
+          notes.length - 1,
+        );
+        this._renderTimeline();
+        renderTimeline();
+      }
+      return;
+    }
   }
 
   /** @param {KeyboardEvent} e */
@@ -308,6 +356,7 @@ export class EditorModal {
 
   /** @param {KeyboardEvent} e */
   _handleCustomKey(e) {
+    /** @type {EditorField[]} */
     const fields = [
       {
         key: "oscType",
@@ -381,15 +430,18 @@ export class EditorModal {
     if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
       e.preventDefault();
       if (field.type === "number") {
-        this.customValues[field.key] = Math.max(
-          field.min,
-          +(this.customValues[field.key] - field.step).toFixed(3),
-        );
+        const val = /** @type {number} */ (this.customValues[field.key]);
+        const min = /** @type {number} */ (field.min);
+        const step = /** @type {number} */ (field.step);
+        this.customValues[field.key] = Math.max(min, +(val - step).toFixed(3));
         this._applyCustom();
-      } else if (field.type === "choice") {
-        const idx = field.options?.indexOf(this.customValues[field.key]);
+      } else if (field.type === "choice" && field.options) {
+        const val = /** @type {string} */ (this.customValues[field.key]);
+        const idx = field.options.indexOf(val);
         this.customValues[field.key] =
-          field.options[(idx - 1 + field.options) % field.options?.length];
+          field.options[
+            (idx - 1 + field.options.length) % field.options.length
+          ];
         this._applyCustom();
       }
       this._renderCustom();
@@ -398,16 +450,17 @@ export class EditorModal {
     if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
       e.preventDefault();
       if (field.type === "number") {
-        this.customValues[field.key] = Math.min(
-          field.max,
-          +(this.customValues[field.key] + field.step).toFixed(3),
-        );
+        const val = /** @type {number} */ (this.customValues[field.key]);
+        const max = /** @type {number} */ (field.max);
+        const step = /** @type {number} */ (field.step);
+        this.customValues[field.key] = Math.min(max, +(val + step).toFixed(3));
         this._applyCustom();
       }
-      if (field.type === "choice") {
-        const idx = field.options?.indexOf(this.customValues[field.key]);
+      if (field.type === "choice" && field.options) {
+        const val = /** @type {string} */ (this.customValues[field.key]);
+        const idx = field.options.indexOf(val);
         this.customValues[field.key] =
-          field.options[(idx + 1) % field.options?.length];
+          field.options[(idx + 1) % field.options.length];
         this._applyCustom();
       }
       this._renderCustom();
@@ -447,7 +500,9 @@ export class EditorModal {
 
   _loadCustomFromCurrent() {
     const track = state.tracks[state.currentTrack];
-    const preset = engine.presets[track?.preset];
+    /** @type {Record<string, any>} */
+    const presets = engine.presets;
+    const preset = presets[track?.preset];
     if (preset) {
       this.customValues.oscType = preset.oscillator?.type || "sawtooth";
       this.customValues.attack = preset.envelope?.attack || 0.05;
@@ -482,24 +537,125 @@ export class EditorModal {
     else if (tab === "settings") this._renderSettings();
   }
 
+  /** @param {Track} track @param {Note[]} notes */
+  _drawTimelineCanvas(track, notes) {
+    /** @type {HTMLCanvasElement | null} */ // I actually despise jsdoc and types but i dont want so many errors holy moly
+    const canvas = /** @type {any} */ (document.getElementById("editor-timeline-canvas"));
+    const wrap = canvas?.parentElement;
+    if (!canvas || !wrap) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = wrap.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.fillStyle =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--background")
+        .trim() || "#0a0a0c";
+    ctx.fillRect(0, 0, w, h);
+
+    const semitones = 25;
+    const rowH = h / semitones;
+    const ppb = 60;
+    let maxBeat = 16;
+    notes.forEach((n) => {
+      maxBeat = Math.max(maxBeat, n.start + n.duration);
+    });
+
+    ctx.strokeStyle =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--border")
+        .trim() || "rgba(255,255,255,0.06)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= maxBeat; i++) {
+      const x = i * ppb;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+
+    const noteNames = [
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
+    ];
+    for (let i = 0; i <= semitones; i++) {
+      const y = i * rowH;
+      const ni = i % 12;
+      const isNatural =
+        ni === 0 || ni === 2 || ni === 5 || ni === 7 || ni === 9 || ni === 11;
+      ctx.strokeStyle = isNatural
+        ? "rgba(255,255,255,0.04"
+        : "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    notes.forEach((note, i) => {
+      const x = note.start * ppb;
+      const nw = Math.max(4, note.duration * ppb);
+      const match = note.pitch.match(/^([A-G]#?)(\d)$/);
+      let y = h / 2;
+      if (match) {
+        const semi =
+          (parseInt(match[2]) - 3) * 12 + noteNames.indexOf(match[1]);
+        y = h - (semi + 1) * rowH;
+      }
+      const nh = rowH - 1;
+
+      const isSelected = i === this.selectedNoteIndex;
+      ctx.fillStyle = track.color;
+      ctx.globalAlpha = isSelected ? 0.95 : 0.55;
+      ctx.fillRect(x + 0.5, y + 0.5, nw - 1, nh - 1);
+      ctx.globalAlpha = 1;
+
+      if (isSelected) {
+        ctx.strokeStyle =
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--foreground")
+            .trim() || "#fff";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x + 0.5, y + 0.5, nw - 1, nh - 1);
+      }
+    });
+  }
+
   _renderTimeline() {
+    if (!this.contentEl) return;
     const track = state.tracks[state.currentTrack];
     const notes = track?.notes || [];
-    let html = `<div class="editor-panel-title">${track?.name || "Track"} - ${notes.length} notes</div>`;
-    html += `<div class="editor-list></div>`;
-    if (notes.length === 0) {
-      html += `<div class="editor-empty><No notes on this track/div>`;
-    } else {
-      notes.forEach((n, i) => {
-        const sel = i === this.selectedNoteIndex ? " selected" : "";
-        html += `<div class="editor-row${sel}"><span class="editor-row-pitch"><${n.pitch}/span><span class="editor-row-meta">${n.start.toFixed(2)}s · ${n.duration.toFixed(2)}s</span></div>`;
-      });
-    }
-    html += `</div><div class="editor-hint-row">↑/↓ select · A/D nudge · Del remove</div>`;
+    let html = `<div class="editor-panel-header"><h2>${track?.name || "Track"}</h2><span class="editor-panel-meta">${notes.length} notes</span></div>`;
+    html += `<div class="editor-timeline-wrap"><canvas class="editor-timeline-canvas" id="editor-timeline-canvas"></canvas></div>`;
+    html += `<div class="editor-footer">>↑/↓ select · ←/→ move · Shift+←/→ resize · [ ] pitch · N new · Del delete</div>`;
     this.contentEl.innerHTML = html;
+    requestAnimationFrame(() => this._drawTimelineCanvas(track, notes));
   }
 
   _renderPreset() {
+    if (!this.contentEl) return;
     const presets = Object.keys(engine.presets);
     const current = state.tracks[state.currentTrack]?.preset;
     let html = `<div class="editor-panel-title">Select Preset</div><div class="editor-list">`;
@@ -514,6 +670,8 @@ export class EditorModal {
   }
 
   _renderCustom() {
+    if (!this.contentEl) return;
+    /** @type {EditorField[]} */
     const fields = [
       { key: "oscType", label: "Oscillator", type: "choice" },
       { key: "attack", label: "Attack", type: "number", unit: "s" },
@@ -526,7 +684,7 @@ export class EditorModal {
       const sel = i === this.selectedCustomField ? " selected" : "";
       const val =
         f.type === "number"
-          ? this.customValues[f.key].toFixed(3)
+          ? /** @type {number} */ (this.customValues[f.key]).toFixed(3)
           : this.customValues[f.key];
       html += `<div class="editor-row${sel}"><span>${f.label}</span><span class="editor-row-value">${val}${f.unit || ""}</span></div>`;
     });
@@ -535,6 +693,7 @@ export class EditorModal {
   }
 
   _renderSettings() {
+    if (!this.contentEl) return;
     let html = `<div class="editor-panel-title">Settings</div><div class="editor-list">`;
     this.settingsFields.forEach((f, i) => {
       const sel = i === this.selectedSettingIndex ? " selected" : "";
