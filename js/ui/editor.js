@@ -2,6 +2,13 @@ import { state } from "../state.js";
 import { engine } from "../audio/engine.js";
 import { renderTimeline } from "../timeline.js";
 
+const TAB_ICONS = {
+  timeline: "bar-chart-2",
+  preset: "sliders-horizontal",
+  custom: "cpu",
+  settings: "settings"
+};
+
 export class EditorModal {
   constructor() {
     this.dialog = null;
@@ -52,11 +59,11 @@ export class EditorModal {
                 <div class="editor-sidebar-title">Editor</div>
                 <nav class="editor-tabs"></nav>
                 <div class="editor-hint">
-                    <span>W/S</span> Tabs<br>
-                    <span>↑/↓</span> List <br>
-                    <span>A/D</span> Adjust <br>
-                    <span>Enter</span> Apply <br>
-                    <span>Esc</span> Close
+                    <div><span>Tabs</span><kbd>W/S</kbd></div>
+                    <div><span>List</span><kbd>↑/↓</kbd></div>
+                    <div><span>Adjust</span><kbd>A/D</kbd></div>
+                    <div><span>Apply</span><kbd>Enter</kbd></div>
+                    <div><span>Close</span><kbd>Esc</kbd></div>
                 </div>
             </aside>
             <main class="editor-content"></main>
@@ -68,7 +75,7 @@ export class EditorModal {
       const btn = document.createElement("button");
       btn.className = "editor-tab";
       btn.dataset.index = String(i);
-      btn.textContent = t.label;
+      btn.innerHTML = `<i data-lucide="${TAB_ICONS[t.id]}"></i><span>${t.label}</span>`;
       nav.appendChild(btn);
     });
 
@@ -86,8 +93,11 @@ export class EditorModal {
     this.customValues;
     this.selectedSettingIndex = 0;
     this._loadCustomFromCurrent();
+    this._render();
     this.dialog?.showModal();
     window.addEventListener("keydown", this._boundKey);
+    // @ts-ignore
+    if (window.lucide) lucide.createIcons();
   }
 
   close() {
