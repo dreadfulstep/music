@@ -82,7 +82,7 @@ export class EditorModal {
         label: "Quantize Grid",
         value: "1/4",
         options: ["1/1", "1/2", "1/4", "1/8", "1/16"],
-        type: "choice"
+        type: "choice",
       },
     ];
 
@@ -203,6 +203,121 @@ export class EditorModal {
     if (tab === "timeline") this._handleTimelineKey(e);
     else if (tab === "synth") this._handleSynthKey(e);
     else if (tab === "settings") this._handleSettingsKey(e);
+  }
+
+  /** @param {KeyboardEvent} e */
+  _handleSynthKey(e) {
+    const presets = Object.keys(engine.presets);
+    const customFields = [
+      {
+        key: "oscType",
+        type: "choice",
+        options: [
+          "sine",
+          "square",
+          "sawtooth",
+          "triangle",
+          "fmsine",
+          "fmsquare",
+          "fmtriangle",
+          "amsine",
+        ],
+      },
+      { key: "attack", type: "number", min: 0.001, max: 2, step: 0.01 },
+      { key: "decay", type: "number", min: 0.001, max: 2, step: 0.01 },
+      { key: "sustain", type: "number", min: 0, max: 1, step: 0.05 },
+      { key: "release", type: "number", min: 0.001, max: 5, step: 0.05 },
+    ];
+    const maxNav = this.customEnabled ? 1 + customFields.length : 1;
+
+    if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
+      e.preventDefault();
+      if (this.synthNavIndex > 0) this.synthNavIndex--;
+      this._renderSynth();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (this.synthNavIndex < maxNav) this.synthNavIndex++;
+      this._renderSynth();
+      return;
+    }
+
+    const focus = this.synthNavIndex;
+
+    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      if (focus === 0) {
+        const idx = presets.indexOf(state.tracks[state.currentTrack]?.preset);
+        const newIdx = (idx - 1 + presets.length) % presets.length;
+        engine.setPreset(state.currentTrack, presets[newIdx]);
+      } else if (focus === 1) {
+        this._toggleCustom(presets);
+      } else if (focus >= 2) {
+        const f = customFields[focus - 2];
+        if (f.type === "number") {
+          this.customValues[f.key] = Math.max(
+            f.min,
+            +(this.customValues[f.key] - f.step).toFixed(3),
+          );
+          this._applyCustom();
+        } else if (f.type === "choice") {
+          const idx = f.options?.indexOf(this.customValues[f.key]);
+          this.customValues[f.key] =
+            f.options[(idx - 1 + f.options.length) % f.options?.length];
+          this._applyCustom();
+        }
+      }
+      this._renderSynth();
+      return;
+    }
+
+    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+      e.preventDefault();
+      if (focus === 0) {
+        const idx = presets.indexOf(state.tracks[state.currentTrack]?.preset);
+        const newIdx = (idx + 1) % presets.length;
+        engine.setPreset(state.currentTrack, presets[newIdx]);
+      } else if (focus === 1) {
+        this._toggleCustom(presets);
+      } else if (focus >= 2) {
+        const f = customFields[focus - 2];
+        if (f.type === "number") {
+          this.customValues[f.key] = Math.min(
+            f.max,
+            +(this.customValues[f.key] + f.step).toFixed(3),
+          );
+          this._applyCustom();
+        } else if (f.type === "choice") {
+          const idx = f.options?.indexOf(this.customValues[f.key]);
+          this.customValues[f.key] = f.options[(idx + 1) % f.options?.length];
+          this._applyCustom();
+        }
+      }
+      this._renderSynth();
+      return;
+    }
+
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (focus === 1) {
+        this._toggleCustom(presets);
+        this._renderSynth();
+      }
+      return;
+    }
+  }
+
+  /** @param {string[]} presets */
+  _toggleCustom(presets) {
+    this.customEnabled = !this.customEnabled;
+    if (this.customEnabled) {
+      this._applyCustom();
+    } else {
+      const p = state.tracks[state.currentTrack]?.preset;
+      if (p) engine.setPreset(state.currentTrack, p);
+    }
+    if (!this.customEnabled && this.synthNavIndex > 1) this.synthNavIndex = 1;
   }
 
   /** @param {string} pitch */
@@ -368,7 +483,7 @@ export class EditorModal {
       return;
     }
   }
-  
+
   /** @param {KeyboardEvent} e */
   _handleSettingsKey(e) {
     if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
@@ -477,8 +592,7 @@ export class EditorModal {
     );
     const tab = this._tabs[this.activeTab].id;
     if (tab === "timeline") this._renderTimeline();
-    else if (tab === "preset") this._renderPreset();
-    else if (tab === "custom") this._renderCustom();
+    else if (tab === "synth") this._renderSynth();
     else if (tab === "settings") this._renderSettings();
   }
 
@@ -727,53 +841,162 @@ export class EditorModal {
     }
   }
 
-  _renderPreset() {
+  _renderSynth() {
     if (!this.contentEl) return;
+    const track = state.tracks[state.currentTrack];
     const presets = Object.keys(engine.presets);
-    const current = state.tracks[state.currentTrack]?.preset;
-    let html = `<div class="editor-panel-title">Select Preset</div><div class="editor-list">`;
-    presets.forEach((name, i) => {
-      const sel = i === this.selectedPresetIndex ? " selected" : "";
-      const badge =
-        name === current ? `<span class="editor-row-badge">active</span>` : "";
-      html += `<div class="editor-row${sel}"><span>${name}</span>${badge}</div>`;
-    });
-    html += `</div><div class="editor-hint-row">↑/↓ navigate · Enter apply</div>`;
-    this.contentEl.innerHTML = html;
-  }
+    const current = track.preset || "pluck";
 
-  _renderCustom() {
-    if (!this.contentEl) return;
-    /** @type {EditorField[]} */
-    const fields = [
-      { key: "oscType", label: "Oscillator", type: "choice" },
-      { key: "attack", label: "Attack", type: "number", unit: "s" },
-      { key: "decay", label: "Decay", type: "number", unit: "s" },
-      { key: "sustain", label: "Sustain", type: "number", unit: "" },
-      { key: "release", label: "Release", type: "number", unit: "s" },
+    const customFields = [
+      {
+        key: "oscType",
+        label: "Oscillator",
+        type: "choice",
+        options: [
+          "sine",
+          "square",
+          "sawtooth",
+          "triangle",
+          "fmsine",
+          "fmsquare",
+          "fmtriangle",
+          "amsine",
+        ],
+      },
+      {
+        key: "attack",
+        label: "Attack",
+        type: "number",
+        min: 0.001,
+        max: 2,
+        step: 0.001,
+        unit: "s",
+      },
+      {
+        key: "decay",
+        label: "Decay",
+        type: "number",
+        min: 0.001,
+        max: 2,
+        step: 0.01,
+        unit: "s",
+      },
+      {
+        key: "sustain",
+        label: "Sustain",
+        type: "number",
+        min: 0,
+        max: 1,
+        step: 0.05,
+        unit: "",
+      },
+      {
+        key: "release",
+        label: "Release",
+        type: "number",
+        min: 0.001,
+        max: 5,
+        step: 0.05,
+        unit: "s",
+      },
     ];
-    let html = `<div class="editor-panel-title">Custom Synth</div><div class="editor-list">`;
-    fields.forEach((f, i) => {
-      const sel = i === this.selectedCustomField ? " selected" : "";
-      const val =
-        f.type === "number"
-          ? /** @type {number} */ (this.customValues[f.key]).toFixed(3)
-          : this.customValues[f.key];
-      html += `<div class="editor-row${sel}"><span>${f.label}</span><span class="editor-row-value">${val}${f.unit || ""}</span></div>`;
+
+    if (!this.customEnabled && this.synthNavIndex > 1) this.synthNavIndex = 1;
+
+    let html = `<div class="editor-panel-title">Synth</div>`;
+    html += `<div class="editor-card">`;
+
+    const presetSel = this.synthNavIndex === 0 ? " selected" : "";
+    html += `<div class="editor-row${presetSel}">`;
+    html += `<div style="display:flex;flex-direction:column;gap:2px;"><span style="font-weight:500;">Sound</span><span style="font-size0.7rem;color:var(--foreground-tertiary);">Select a synthesizer preset</span></div>`;
+    html += `<div class="choice-strip" id="preset-strip">`;
+    presets.forEach((name) => {
+      const active = name === current ? " active" : "";
+      html += `<div class="choice-item${active}">${name}</div>`;
     });
-    html += `</div><div class="editor-hint-row">↑/↓ select · A/D adjust</div>`;
+    html += `</div></div>`;
+
+    html += `<div class="editor-divider"></div>`;
+
+    const toggleSel = this.synthNavIndex === 1 ? " selected" : "";
+    html += `<div class="editor-row${toggleSel} id="custom-toggle-row>`;
+    html += `<span style="font-weight:500;">Custom Sound</span>`;
+    html += `<div class="toggle" data-on="${this.customEnabled}"><div class="toggle-track"></div><div class="toggle-thumb"></div></div>`;
+    html += `</div>`;
+
+    html += `<div class="editor-card-body ${this.customEnabled ? "" : "editor-locked"} id="custom-params">`;
+    customFields.forEach((f, i) => {
+      const navIdx = 2 + i;
+      const sel = this.synthNavIndex === navIdx ? " selected" : "";
+      let control = "";
+      if (f.type === "choice") {
+        control += `<div class="choice-strip small">`;
+        f.options?.forEach((opt) => {
+          const active = opt === this.customEnabled[f.key] ? " active" : "";
+          control += `<div class = "choice-item${active}">${opt}</div>`;
+        });
+        control += `</div>`;
+      } else {
+        const val = this.customValues[f.key];
+        const pct = Math.min(
+          100,
+          Math.max(0, ((val - f.min) / (f.max - f.min)) * 100),
+        );
+        control = `
+          <div class="slider">
+            <div class="slider-track">
+              <div class="slider-fill" style="width:${pct}%"></div>
+              <span class="slider-value">${val.toFixed(3)}${f.unit || ""}</span>
+            </div>
+          </div>
+        `;
+      }
+      html += `<div class="editor-row${sel}"><span>${f.label}</span>${control}</div>`;
+    });
+    html += `</div></div>`;
+    html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Enter toggle</div>`;
+
     this.contentEl.innerHTML = html;
   }
 
   _renderSettings() {
     if (!this.contentEl) return;
     let html = `<div class="editor-panel-title">Settings</div><div class="editor-list">`;
+    html += `<div class="editor-card">`;
+
     this.settingsFields.forEach((f, i) => {
       const sel = i === this.selectedSettingIndex ? " selected" : "";
-      const display = f.type === "number" ? f.value + (f.unit || "") : f.value;
-      html += `<div class="editor-row${sel}"><span>${f.label}</span><span class="editor-row-value">${display}</span></div>`;
+      let right = "";
+
+      if (f.id === "theme" || f.id === "metronome") {
+        const isOn = f.value === (f.id === "theme" ? "dark" : "on");
+        right = `<div class="toggle" data-on="${isOn}"><div class="toggle-track"></div><div class="toggle-thumb"></div></div>`;
+      } else if (f.type === "number") {
+        const pct = Math.min(
+          100,
+          Math.max(0, ((f.value - f.min) / (f.max - f.min)) * 100),
+        );
+        right = `
+          <div class="slider">
+            <div class="slider-track"><div class="slider-fill" style="width:${pct}%"></div></div>
+            <span class="slider-value">${f.value}${f.unit || ""}</span>
+          </div>`;
+      } else if (f.type === "choice" && f.options) {
+        right += `<div class="choice-strip small">`;
+        f.options.forEach((opt) => {
+          const active = opt === f.value ? " active" : "";
+          right += `<div class="choice-item${active}">${opt}</div>`;
+        });
+        right += `</div>`;
+      }
+
+      html += `<div class="editor-row${sel}"><span>${f.label}</span>${right}</div>`;
+      if (i < this.settingsFields.length - 1)
+        html += `<div class="editor-divider></div>`;
     });
-    html += `</div><div class="editor-hint-row">↑/↓ navigate · A/D adjust · Enter toggle</div>`;
+
+    html += `</div>`;
+    html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Enter toggle</div>`;
     this.contentEl.innerHTML = html;
   }
 }
