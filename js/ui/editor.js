@@ -40,6 +40,8 @@ export class EditorModal {
     this.selectedPresetIndex = 0;
     this.selectedCustomField = 0;
     this.selectedSettingIndex = 0;
+    this.synthNavIndex = 0; // 0=preset, 1=custom toggle, 2+= paramas
+    this.customEnabled = false;
 
     /** @type {Record<string, string|number>} */
     this.customValues = {
@@ -80,14 +82,14 @@ export class EditorModal {
         label: "Quantize Grid",
         value: "1/4",
         options: ["1/1", "1/2", "1/4", "1/8", "1/16"],
+        type: "choice"
       },
     ];
 
     this._boundKey = this._handleKey.bind(this);
     this._tabs = [
       { id: "timeline", label: "Timeline" },
-      { id: "preset", label: "Preset" },
-      { id: "custom", label: "Custom Synth" },
+      { id: "synth", label: "Synth" },
       { id: "settings", label: "Settings" },
     ];
   }
@@ -132,7 +134,7 @@ export class EditorModal {
   _applySettings() {
     const vol = this.settingsFields.find((f) => f.id === "masterVolume");
     if (vol && engine.master?.gain) {
-      engine.master.gain = vol.value / 100;
+      engine.master.gain.value = vol.value / 100;
     }
   }
 
@@ -144,6 +146,8 @@ export class EditorModal {
     this.selectedPresetIndex = 0;
     this.customValues;
     this.selectedSettingIndex = 0;
+    this.synthNavIndex = 0;
+    this.customEnabled = false;
     this._loadCustomFromCurrent();
     this._render();
     this.dialog?.showModal();
@@ -197,8 +201,7 @@ export class EditorModal {
     }
 
     if (tab === "timeline") this._handleTimelineKey(e);
-    else if (tab === "preset") this._handlePresetKey(e);
-    else if (tab === "custom") this._handleCustomKey(e);
+    else if (tab === "synth") this._handleSynthKey(e);
     else if (tab === "settings") this._handleSettingsKey(e);
   }
 
@@ -365,150 +368,7 @@ export class EditorModal {
       return;
     }
   }
-
-  /** @param {KeyboardEvent} e */
-  _handlePresetKey(e) {
-    const presets = Object.keys(engine.presets);
-    if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
-      e.preventDefault();
-      this.selectedPresetIndex = Math.max(0, this.selectedPresetIndex - 1);
-      this._renderPreset();
-      return;
-    }
-    if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      this.selectedPresetIndex = Math.min(
-        presets.length - 1,
-        this.selectedPresetIndex + 1,
-      );
-      this._renderPreset();
-      return;
-    }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const name = presets[this.selectedPresetIndex];
-      if (name) {
-        engine.setPreset(state.currentTrack, name);
-        this._renderPreset();
-      }
-      return;
-    }
-  }
-
-  /** @param {KeyboardEvent} e */
-  _handleCustomKey(e) {
-    /** @type {EditorField[]} */
-    const fields = [
-      {
-        key: "oscType",
-        label: "Oscillator",
-        type: "choice",
-        options: [
-          "sine",
-          "square",
-          "sawtooth",
-          "triangle",
-          "fmsine",
-          "fmsquare",
-          "fmtriangle",
-          "amsine",
-        ],
-      },
-      {
-        key: "attack",
-        label: "Attack",
-        type: "number",
-        min: 0.001,
-        max: 2,
-        step: 0.01,
-      },
-      {
-        key: "decay",
-        label: "Decay",
-        type: "number",
-        min: 0.001,
-        max: 2,
-        step: 0.01,
-      },
-      {
-        key: "sustain",
-        label: "Sustain",
-        type: "number",
-        min: 0,
-        max: 1,
-        step: 0.05,
-      },
-      {
-        key: "release",
-        label: "Release",
-        type: "number",
-        min: 0.001,
-        max: 5,
-        step: 0.05,
-      },
-    ];
-
-    if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
-      e.preventDefault();
-      this.selectedCustomField = Math.max(0, this.selectedCustomField - 1);
-      this._renderCustom();
-      return;
-    }
-
-    if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
-      e.preventDefault();
-      this.selectedCustomField = Math.min(
-        fields.length - 1,
-        this.selectedCustomField + 1,
-      );
-      this._renderCustom();
-      return;
-    }
-
-    const field = fields[this.selectedCustomField];
-    if (!field) return;
-
-    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
-      e.preventDefault();
-      if (field.type === "number") {
-        const val = /** @type {number} */ (this.customValues[field.key]);
-        const min = /** @type {number} */ (field.min);
-        const step = /** @type {number} */ (field.step);
-        this.customValues[field.key] = Math.max(min, +(val - step).toFixed(3));
-        this._applyCustom();
-      } else if (field.type === "choice" && field.options) {
-        const val = /** @type {string} */ (this.customValues[field.key]);
-        const idx = field.options.indexOf(val);
-        this.customValues[field.key] =
-          field.options[
-            (idx - 1 + field.options.length) % field.options.length
-          ];
-        this._applyCustom();
-      }
-      this._renderCustom();
-      return;
-    }
-    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
-      e.preventDefault();
-      if (field.type === "number") {
-        const val = /** @type {number} */ (this.customValues[field.key]);
-        const max = /** @type {number} */ (field.max);
-        const step = /** @type {number} */ (field.step);
-        this.customValues[field.key] = Math.min(max, +(val + step).toFixed(3));
-        this._applyCustom();
-      }
-      if (field.type === "choice" && field.options) {
-        const val = /** @type {string} */ (this.customValues[field.key]);
-        const idx = field.options.indexOf(val);
-        this.customValues[field.key] =
-          field.options[(idx + 1) % field.options.length];
-        this._applyCustom();
-      }
-      this._renderCustom();
-      return;
-    }
-  }
-
+  
   /** @param {KeyboardEvent} e */
   _handleSettingsKey(e) {
     if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
