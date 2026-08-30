@@ -19,7 +19,7 @@ function updatePlayhead() {
   if (!state.isPlaying || !timeline || !playhead) return;
 
   const beat = Tone.Transport.seconds / (60 / state.bpm);
-  const x = beat * 40 + 120;
+  const x = beat * 40 + 164;
   playhead.style.left = x + "px";
 
   const scrollLeft = timeline?.scrollLeft;
