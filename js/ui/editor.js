@@ -531,7 +531,55 @@ export class EditorModal {
     if (!field) return;
 
     if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
-      
+      e.preventDefault();
+      if (field.type === "number") {
+        field.value = Math.max(field.min, field.value - field.step);
+        this._applySettings();
+        this._renderSettings();
+      } else if (field.type === "choice" && field.options) {
+        const idx = field.options.indexOf(field.value);
+        field.value =
+          field.options[
+            (idx - 1 + field.options.length) % field.options.length
+          ];
+        if (field.id === "theme") {
+          document.documentElement.setAttribute("data-theme", field.value);
+        }
+        this._renderSettings();
+      }
+      this._renderSettings();
+      return;
+    }
+
+    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+      e.preventDefault();
+      if (field.type === "number") {
+        field.value = Math.min(field.max, field.value + field.step);
+        this._applySettings();
+        this._renderSettings();
+      } else if (field.type === "choie" && field.options) {
+        const idx = field.options.indexOf(field.value);
+        field.value = field.options[(idx + 1) % field.options.length];
+        if (field.id === "theme") {
+          document.documentElement.setAttribute("data-theme", field.value);
+        }
+        this._renderSettings();
+      }
+      this._renderSettings();
+      return;
+    }
+
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (field.type === "choice" && field.options) {
+        const idx = field.options.indexOf(field.value);
+        field.value = field.options[(idx + 1) % field.options.length];
+        if (field.id === "theme") {
+          document.documentElement.setAttribute("data-theme", field.value);
+        }
+        this._renderSettings();
+      }
+      return;
     }
   }
 
@@ -580,49 +628,78 @@ export class EditorModal {
     const canvas = /** @type {any} */ (
       document.getElementById("editor-timeline-canvas")
     );
-    const wrap = canvas?.parentElement;
-    if (!canvas || !wrap) return;
+    const viewport = document.querySelector(".editor-timeline-viewport");
+    if (!canvas || !viewport) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const rect = wrap.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
+    const viewRect = viewport.getBoundingClientRect();
+    const viewW = viewRect.width;
+    const viewH = viewRect.height;
 
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = w + "px";
-    canvas.style.height = h + "px";
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, w, h);
-
-    ctx.fillStyle =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--background")
-        .trim() || "#0a0a0c";
-    ctx.fillRect(0, 0, w, h);
-
-    const semitones = 25;
-    const rowH = h / semitones;
     const ppb = 60;
     let maxBeat = 16;
     notes.forEach((n) => {
       maxBeat = Math.max(maxBeat, n.start + n.duration);
     });
+    const contentW = Math.max(viewW, maxBeat * ppb);
 
-    ctx.strokeStyle =
+    canvas.width = contentW * dpr;
+    canvas.height = viewH * dpr;
+    canvas.style.width = contentW + "px";
+    canvas.style.height = viewH + "px";
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, contentW, viewH);
+
+    ctx.fillStyle =
       getComputedStyle(document.documentElement)
-        .getPropertyValue("--border")
-        .trim() || "rgba(255,255,255,0.06)";
-    ctx.lineWidth = 1;
+        .getPropertyValue("--background")
+        .trim() || "#0a0a0c";
+    ctx.fillRect(0, 0, contentW, viewH);
+
+    const semitones = 25;
+    const rowH = viewH / semitones;
+
+    for (let i = 0; i <= semitones; i++) {
+      const y = i * rowH;
+      const ni = i % 12;
+      const isSharp = ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
+      ctx.strokeStyle = isSharp
+        ? "rgba(255,255,255,0.06)"
+        : "rgba(255,255,255,0.03)";
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(contentW, y);
+      ctx.stroke();
+    }
+
     for (let i = 0; i <= maxBeat; i++) {
       const x = i * ppb;
+      const isMeasure = i % 4 === 0;
+      ctx.lineWidth = isMeasure ? 1.5 : 0.5;
+      ctx.strokeStyle = isMeasure
+        ? getComputedStyle(document.documentElement)
+            .getPropertyValue("--border-strong")
+            .trim()
+        : getComputedStyle(document.documentElement)
+            .getPropertyValue("--border")
+            .trim();
       ctx.beginPath();
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
+      ctx.lineTo(x, viewH);
       ctx.stroke();
+
+      if (!isMeasure) {
+        ctx.fillStyle =
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--foreground-tertiary")
+            .trim() || "#666";
+        ctx.font = "10px ui-monospace, monospace";
+        ctx.textBaseline = "top";
+        ctx.fillText(String(i), x + 4, 4);
+      }
     }
 
     const noteNames = [
@@ -639,36 +716,40 @@ export class EditorModal {
       "A#",
       "B",
     ];
-    for (let i = 0; i <= semitones; i++) {
-      const y = i * rowH;
-      const ni = i % 12;
-      const isNatural =
-        ni === 0 || ni === 2 || ni === 5 || ni === 7 || ni === 9 || ni === 11;
-      ctx.strokeStyle = isNatural
-        ? "rgba(255,255,255,0.04"
-        : "rgba(255,255,255,0.08)";
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-
     notes.forEach((note, i) => {
       const x = note.start * ppb;
-      const nw = Math.max(4, note.duration * ppb);
+      const nw = Math.max(6, note.duration * ppb);
       const match = note.pitch.match(/^([A-G]#?)(\d)$/);
-      let y = h / 2;
+      let y = viewH / 2;
       if (match) {
         const semi =
           (parseInt(match[2]) - 3) * 12 + noteNames.indexOf(match[1]);
-        y = h - (semi + 1) * rowH;
+        y = viewH - (semi + 1) * rowH;
       }
       const nh = rowH - 1;
 
       const isSelected = i === this.selectedNoteIndex;
+
+      ctx.shadowColor = track.color;
+      ctx.shadowBlur = isSelected ? 12 : 6;
       ctx.fillStyle = track.color;
-      ctx.globalAlpha = isSelected ? 0.95 : 0.55;
-      ctx.fillRect(x + 0.5, y + 0.5, nw - 1, nh - 1);
+      ctx.globalAlpha = isSelected ? 0.95 : 0.75;
+
+      const r = Math.min(3, nh / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + nw - r, y);
+      ctx.quadraticCurveTo(x + nw, y, x + nw, y + r);
+      ctx.lineTo(x + nw, y + nh - r);
+      ctx.quadraticCurveTo(x + nw, y + nh, x + nw - r, y + nh);
+      ctx.lineTo(x + r, y + nh);
+      ctx.quadraticCurveTo(x, y + nh, x, y + nh - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
 
       if (isSelected) {
@@ -677,9 +758,27 @@ export class EditorModal {
             .getPropertyValue("--foreground")
             .trim() || "#fff";
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(x + 0.5, y + 0.5, nw - 1, nh - 1);
+        ctx.stroke();
+      }
+
+      if (nw > 28) {
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 10px ui-monospace, monospace";
+        ctx.textBaseline = "middle";
+        ctx.fillText(note.pitch, x + 5, y + nh / 2);
       }
     });
+
+    if (notes[this.selectedNoteIndex]) {
+      const sel = notes[this.selectedNoteIndex];
+      const selX = sel.start * ppb;
+      if (
+        selX < viewport.scrollLeft + 20 ||
+        selX > viewport.scrollLeft + viewW - 80
+      ) {
+        viewport.scrollLeft = Math.max(0, selX - 80);
+      }
+    }
   }
 
   _renderTimeline() {
@@ -687,10 +786,85 @@ export class EditorModal {
     const track = state.tracks[state.currentTrack];
     const notes = track?.notes || [];
     let html = `<div class="editor-panel-header"><h2>${track?.name || "Track"}</h2><span class="editor-panel-meta">${notes.length} notes</span></div>`;
-    html += `<div class="editor-timeline-wrap"><canvas class="editor-timeline-canvas" id="editor-timeline-canvas"></canvas></div>`;
-    html += `<div class="editor-footer">>↑/↓ select · ←/→ move · Shift+←/→ resize · [ ] pitch · N new · Del delete</div>`;
+    html += `<div class="editor-timeline-scroll">`;
+    html += `<div class="editor-piano-roll"><canvas id="editor-piano-canvas"></canvas></div>`;
+    html += `<div class="editor-timeline-viewport"><canvas id="editor-timeline-canvas"></canvas></div>`;
+    html += `</div>`;
+    html += `<div class="editor-footer">↑/↓ select · ←/→ move · Shift+←/→ resize · [ ] pitch · N new · Del delete</div>`;
     this.contentEl.innerHTML = html;
-    requestAnimationFrame(() => this._drawTimelineCanvas(track, notes));
+    requestAnimationFrame(() => {
+      this._drawEditorPianoRoll();
+      this._drawTimelineCanvas(track, notes);
+    });
+  }
+
+  _drawEditorPianoRoll() {
+    /** @type {HTMLCanvasElement | null} */
+    const canvas = /** @type {any} */ (
+      document.getElementById("editor-piano-canvas")
+    );
+    const wrap = canvas?.parentElement;
+    if (!canvas || !wrap) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = wrap.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+
+    const semitones = 25;
+    const rowH = h / semitones;
+    const names = [
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
+    ];
+
+    ctx.clearRect(0, 0, w, h);
+
+    for (let i = 0; i < semitones; i++) {
+      const y = i * rowH;
+      const ni = i % 12;
+      const isSharp = ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
+
+      if (isSharp) {
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(0, y, w, rowH);
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.fillRect(0, y, w, rowH);
+      }
+
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.moveTo(0, y + rowH);
+      ctx.lineTo(w, y + rowH);
+      ctx.stroke();
+
+      const octave = Math.floor(i / 12) + 3;
+      ctx.fillStyle = isSharp ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)";
+      ctx.font = "9px ui-monospace, monospace";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(names[ni] + octave, w - 4, y + rowH / 2);
+    }
   }
 
   _renderPreset() {
@@ -718,7 +892,7 @@ export class EditorModal {
       { key: "sustain", label: "Sustain", type: "number", unit: "" },
       { key: "release", label: "Release", type: "number", unit: "s" },
     ];
-    let html = `<div class="editor-panel-title">Custom Synth</div><div clas="editor-list">`;
+    let html = `<div class="editor-panel-title">Custom Synth</div><div class="editor-list">`;
     fields.forEach((f, i) => {
       const sel = i === this.selectedCustomField ? " selected" : "";
       const val =
@@ -736,9 +910,10 @@ export class EditorModal {
     let html = `<div class="editor-panel-title">Settings</div><div class="editor-list">`;
     this.settingsFields.forEach((f, i) => {
       const sel = i === this.selectedSettingIndex ? " selected" : "";
-      html += `<div class="editor-row${sel}"><span>${f.label}</span><span class="editor-row-value">${f.value}</span></div>`;
+      const display = f.type === "number" ? f.value + (f.unit || "") : f.value;
+      html += `<div class="editor-row${sel}"><span>${f.label}</span><span class="editor-row-value">${display}</span></div>`;
     });
-    html += `</div><div class="editor-hint-row">Enter / Space to toggle</div>`;
+    html += `</div><div class="editor-hint-row">↑/↓ navigate · A/D adjust · Enter toggle</div>`;
     this.contentEl.innerHTML = html;
   }
 }
