@@ -56,6 +56,30 @@ export class EditorModal {
         label: "Theme",
         value: "dark",
         options: ["dark", "light"],
+        type: "choice",
+      },
+      {
+        id: "masterVolume",
+        label: "Master Volume",
+        value: 80,
+        min: 0,
+        max: 100,
+        step: 5,
+        type: "number",
+        unit: "%",
+      },
+      {
+        id: "metronome",
+        label: "Metronome",
+        value: "off",
+        options: ["off", "on"],
+        type: "choice",
+      },
+      {
+        id: "quantization",
+        label: "Quantize Grid",
+        value: "1/4",
+        options: ["1/1", "1/2", "1/4", "1/8", "1/16"],
       },
     ];
 
@@ -103,6 +127,13 @@ export class EditorModal {
     this.tabEls = Array.from(nav?.querySelectorAll(".editor-tab"));
     this.contentEl = this.dialog.querySelector(".editor-content");
     document.body.appendChild(this.dialog);
+  }
+
+  _applySettings() {
+    const vol = this.settingsFields.find((f) => f.id === "masterVolume");
+    if (vol && engine.master?.gain) {
+      engine.master.gain = vol.value / 100;
+    }
   }
 
   open() {
@@ -495,16 +526,12 @@ export class EditorModal {
       this._renderSettings();
       return;
     }
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      const field = this.settingsFields[this.selectedSettingIndex];
-      if (field.id === "theme") {
-        const idx = field.options.indexOf(field.value);
-        field.value = field.options[(idx + 1) % field.options.length];
-        document.documentElement.setAttribute("data-theme", field.value);
-        this._renderSettings();
-      }
-      return;
+
+    const field = this.settingsFields[this.selectedSettingIndex];
+    if (!field) return;
+
+    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+      
     }
   }
 
