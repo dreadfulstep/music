@@ -131,6 +131,15 @@ export class EditorModal {
     return this.opened;
   }
 
+  /** @param {Note} note */
+  _auditionNote(note) {
+    if (!note) return;
+    const track = state.tracks[state.currentTrack];
+    const synth = engine.synths.get(track.id);
+    if (!synth) return;
+    synth.triggerAttackRelease(note.pitch, "16n");
+  }
+
   /** @param {KeyboardEvent} e */
   _handleKey(e) {
     if (e.key === "Escape" || e.key === "x" || e.key === "X") {
@@ -283,6 +292,7 @@ export class EditorModal {
         const s = this._pitchToSemitone(note.pitch);
         note.pitch = this._semitoneToPitch(Math.max(0, s - 1));
         this._renderTimeline();
+        this._auditionNote(notes[this.selectedNoteIndex]);
         renderTimeline();
       }
       return;
@@ -540,7 +550,9 @@ export class EditorModal {
   /** @param {Track} track @param {Note[]} notes */
   _drawTimelineCanvas(track, notes) {
     /** @type {HTMLCanvasElement | null} */ // I actually despise jsdoc and types but i dont want so many errors holy moly
-    const canvas = /** @type {any} */ (document.getElementById("editor-timeline-canvas"));
+    const canvas = /** @type {any} */ (
+      document.getElementById("editor-timeline-canvas")
+    );
     const wrap = canvas?.parentElement;
     if (!canvas || !wrap) return;
 

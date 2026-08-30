@@ -49,7 +49,7 @@ function clearCountdown() {
   if (countdownInterval) {
     clearInterval(countdownInterval);
     countdownInterval = null;
-  };
+  }
   const el = document.getElementById("countdown");
   if (el) el.style.display = "none";
 }
@@ -83,7 +83,7 @@ function startCountdown() {
       updatePlayhead();
       updateTransportButtons();
       if (overlay) overlay.style.display = "none";
-    };
+    }
   }, 1000);
 }
 
@@ -198,7 +198,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   input.onCombo("shift", "e", () => {
     if (!editorModal.isOpen()) editorModal.open();
-  })
+  });
+
+  input.onCombo("shift", "arrowleft", () => {
+    if (timeline) timeline.scrollLeft -= timeline.clientWidth / 2;
+  });
+  input.onCombo("shift", "arrowright", () => {
+    if (timeline) timeline.scrollLeft += timeline.clientWidth / 2;
+  });
+  input.onCombo("shift", "arrowup", () => {
+    if (timeline) timeline.scrollTop -= 200;
+  });
+  input.onCombo("shift", "arrowdown", () => {
+    if (timeline) timeline.scrollTop += 200;
+  });
 
   input.mount();
   renderTimeline();
