@@ -505,56 +505,84 @@ export class EditorModal {
     const field = this.settingsFields[this.selectedSettingIndex];
     if (!field) return;
 
-    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+    const isToggle = field.id === "theme" || field.id === "metronome";
+    const isNumber = field.type === "number";
+    const isChoice = field.type === "choice" && field.options;
+
+    if (
+      e.key === "ArrowLeft" ||
+      e.key.toLowerCase() === "a" ||
+      e.key === "Enter" ||
+      e.key === " "
+    ) {
       e.preventDefault();
-      if (field.type === "number") {
+      if (isToggle) {
+        field.value =
+          field.value === (field.id === "theme" ? "dark" : "on")
+            ? field.id === "theme"
+              ? "light"
+              : "off"
+            : field.id === "theme"
+              ? "dark"
+              : "on";
+        if (field.id === "theme") {
+          document.documentElement.setAttribute("data-theme", field.value);
+        }
+        this._applySettings();
+        this._renderSettings();
+      }
+
+      if (isNumber) {
         field.value = Math.max(field.min, field.value - field.step);
         this._applySettings();
         this._renderSettings();
-      } else if (field.type === "choice" && field.options) {
+        return;
+      }
+
+      if (isChoice) {
         const idx = field.options.indexOf(field.value);
         field.value =
           field.options[
             (idx - 1 + field.options.length) % field.options.length
           ];
-        if (field.id === "theme") {
-          document.documentElement.setAttribute("data-theme", field.value);
-        }
         this._renderSettings();
+        return;
       }
-      this._renderSettings();
-      return;
     }
 
     if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
       e.preventDefault();
-      if (field.type === "number") {
+
+      if (isToggle) {
+        field.value =
+          field.value === (field.id === "theme" ? "dark" : "on")
+            ? field.id === "theme"
+              ? "light"
+              : "off"
+            : field.id === "theme"
+              ? "dark"
+              : "on";
+        if (field.id === "theme") {
+          document.documentElement.setAttribute("data-theme", field.value);
+        }
+        this._applySettings();
+        this._renderSettings();
+        return;
+      }
+
+      if (isNumber) {
         field.value = Math.min(field.max, field.value + field.step);
         this._applySettings();
         this._renderSettings();
-      } else if (field.type === "choie" && field.options) {
-        const idx = field.options.indexOf(field.value);
-        field.value = field.options[(idx + 1) % field.options.length];
-        if (field.id === "theme") {
-          document.documentElement.setAttribute("data-theme", field.value);
-        }
-        this._renderSettings();
+        return;
       }
-      this._renderSettings();
-      return;
-    }
 
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (field.type === "choice" && field.options) {
+      if (isChoice) {
         const idx = field.options.indexOf(field.value);
         field.value = field.options[(idx + 1) % field.options.length];
-        if (field.id === "theme") {
-          document.documentElement.setAttribute("data-theme", field.value);
-        }
         this._renderSettings();
+        return;
       }
-      return;
     }
   }
 
@@ -992,7 +1020,7 @@ export class EditorModal {
 
       html += `<div class="editor-row${sel}"><span>${f.label}</span>${right}</div>`;
       if (i < this.settingsFields.length - 1)
-        html += `<div class="editor-divider></div>`;
+        html += `<div class="editor-divider"></div>`;
     });
 
     html += `</div>`;
