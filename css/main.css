@@ -1,14 +1,14 @@
 :root {
-  --background: oklch(8% 0.005 270);
-  --foreground: oklch(92% 0.003 270);
-  --foreground-secondary: oklch(65% 0.01 270);
-  --foreground-tertiary: oklch(45% 0.01 270);
+  --background: oklch(10% 0.005 270);
+  --foreground: oklch(94% 0.003 270);
+  --foreground-secondary: oklch(68% 0.012 270);
+  --foreground-tertiary: oklch(48% 0.01 270);
 
-  --surface: oklch(14% 0.007 270);
-  --surface-hover: oklch(18% 0.01 270);
-  --surface-raised: oklch(22% 0.012 270);
+  --surface: oklch(20% 0.0005 270);
+  --surface-hover: oklch(26% 0.0014 270);
+  --surface-raised: oklch(32% 0.016 270);
 
-  --secondary: oklch(16% 0.006 270);
+  --secondary: oklch(20% 0.003 270);
   --tertiary: oklch(24% 0.008 270);
 
   --border: oklch(100% 0 0 / 0.06);
@@ -552,7 +552,7 @@ dialog.editor-modal {
   border: 1px solid var(--border-strong);
   border-radius: 20px;
   background: var(--surface);
-  color: #e8e8ed;
+  color: var(--foreground);
   overflow: hidden;
   position: fixed;
   top: 50%;
@@ -726,12 +726,31 @@ dialog.editor-modal {
   color: var(--foreground-secondary);
   border: 1px solid transparent;
   flex-shrink: 0;
+  transition: background 0.08s, border-color 0.08s, color 0.08s;
+  position: relative;
 }
 
 .editor-row.selected {
-  background-color: color-mix(in oklch, var(--accent) 15%, transparent);
-  border-color: color-mix(in oklch, var(--accent) 40%, transparent);
-  color: var(--accent-text);
+  background-color: color-mix(in oklch, var(--accent) 8%, transparent);
+  border-color: transparent;
+  color: var(--foreground);
+}
+
+.editor-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.editor-row.selected::before {
+  transform: translateY(-50%) scaleY(1);
 }
 
 .editor-row-pitch {
@@ -921,7 +940,7 @@ dialog.editor-modal {
 
 .editor-timeline-viewport::-webkit-scrollbar {
   height: 5px;
-  background: var(--surface);
+  background: var(--background);
 }
 .editor-timeline-viewport::-webkit-scrollbar-thumb {
   background: var(--border-strong);
@@ -944,10 +963,10 @@ body,
 }
 
 .editor-card {
-  background: var(--surface);
+  background: var(--surface-hover);
   border: 1px solid var(--border);
   border-radius: var(--border-radius);
-  padding: 8px 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
 }
@@ -965,11 +984,13 @@ body,
   gap: 4px;
   overflow-x: auto;
   padding: 4px;
-  background: var(--background);
+  background: var(--secondary);
   border: 1px solid var(--border);
   border-radius: var(--border-radius-sm);
   flex-shrink: 0;
   scrollbar-width: none;
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .choice-strip::-webkit-scrollbar {
@@ -977,9 +998,9 @@ body,
 }
 
 .choice-item {
-  padding: 5px 12px;
+  padding: 5px 10px;
   border-radius: 6px;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--foreground-tertiary);
   background: transparent;
   border: 1px solid transparent;
@@ -995,45 +1016,20 @@ body,
   border-color: var(--accent);
 }
 
-.toggle {
-  width: 44px;
-  height: 24px;
-  position: relative;
+.badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background-color: var(--accent-muted);
+  font-family: inherit;
   flex-shrink: 0;
-}
-
-.toggle-track {
-  width: 100%;
-  height: 100%;
-  background: var(--tertiary);
-  border-radius: 12px;
-  border: 1px solid var(--border-strong);
-  transition:
-    var(--background) 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.toggle[data-on="true"] .toggle-track {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.toggle-thumb {
-  position: absolute;
-  left: 2px;
-  top: 2px;
-  width: 18px;
-  background: var(--foreground);
-  border-radius: 50%;
-  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.toggle[data-on="true"] .toggle-thumb {
-  transform: translateX(20px);
-  background: var(--background);
 }
 
 .slider {
@@ -1082,4 +1078,18 @@ body,
   padding-left: 12px;
   padding-right: 12px;
   border-radius: 8px;
+}
+
+.editor-card-title {
+  font-size: 0.65rem;;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  columns: var(--foreground-tertiary);
+  font-weight: 700;
+  padding: 0 4px 8px;
+  margin: 0;
+}
+
+.editor-card + .editor-card {
+  margin-top: 12px;
 }

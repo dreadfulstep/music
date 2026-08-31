@@ -2,6 +2,20 @@ import { state } from "../state.js";
 import { engine } from "../audio/engine.js";
 import { renderTimeline } from "../timeline.js";
 
+/** @type {Record<string, string>} */
+const OSC_LABELS = {
+  sine: "Sine",
+  square: "Square",
+  sawtooth: "Saw",
+  triangle: "Tri",
+  fmsine: "FM Sine",
+  fmsquare: "FM Sq",
+  fmtriangle: "FM Tri",
+  amsine: "AM Sine",
+  sine4: "Sine 4",
+  sine8: "Sine8",
+};
+
 /** @typedef {import("../state.js").Note} Note */
 /** @typedef {import("../state.js").Track} Track */
 
@@ -20,8 +34,7 @@ import { renderTimeline } from "../timeline.js";
 /** @type {Record<string, string>} */
 const TAB_ICONS = {
   timeline: "bar-chart-2",
-  preset: "sliders-horizontal",
-  custom: "cpu",
+  synth: "sliders-horizontal",
   settings: "settings",
 };
 
@@ -54,6 +67,7 @@ export class EditorModal {
 
     this.settingsFields = [
       {
+        group: "Appearance",
         id: "theme",
         label: "Theme",
         value: "dark",
@@ -61,6 +75,7 @@ export class EditorModal {
         type: "choice",
       },
       {
+        group: "Audio",
         id: "masterVolume",
         label: "Master Volume",
         value: 80,
@@ -71,6 +86,7 @@ export class EditorModal {
         unit: "%",
       },
       {
+        group: "Audio",
         id: "metronome",
         label: "Metronome",
         value: "off",
@@ -78,6 +94,7 @@ export class EditorModal {
         type: "choice",
       },
       {
+        group: "Project",
         id: "quantization",
         label: "Quantize Grid",
         value: "1/4",
@@ -134,7 +151,7 @@ export class EditorModal {
   _applySettings() {
     const vol = this.settingsFields.find((f) => f.id === "masterVolume");
     if (vol && engine.master?.gain) {
-      engine.master.gain.value = vol.value / 100;
+      engine.master.gain.value = /** @type {number} */ (vol.value) / 100;
     }
   }
 
@@ -208,9 +225,11 @@ export class EditorModal {
   /** @param {KeyboardEvent} e */
   _handleSynthKey(e) {
     const presets = Object.keys(engine.presets);
+    /** @type {EditorField[]} */
     const customFields = [
       {
         key: "oscType",
+        label: "Oscillator",
         type: "choice",
         options: [
           "sine",
@@ -223,10 +242,38 @@ export class EditorModal {
           "amsine",
         ],
       },
-      { key: "attack", type: "number", min: 0.001, max: 2, step: 0.01 },
-      { key: "decay", type: "number", min: 0.001, max: 2, step: 0.01 },
-      { key: "sustain", type: "number", min: 0, max: 1, step: 0.05 },
-      { key: "release", type: "number", min: 0.001, max: 5, step: 0.05 },
+      {
+        key: "attack",
+        label: "Attack",
+        type: "number",
+        min: 0.001,
+        max: 2,
+        step: 0.01,
+      },
+      {
+        key: "decay",
+        label: "Decay",
+        type: "number",
+        min: 0.001,
+        max: 2,
+        step: 0.01,
+      },
+      {
+        key: "sustain",
+        label: "Sustain",
+        type: "number",
+        min: 0,
+        max: 1,
+        step: 0.05,
+      },
+      {
+        key: "release",
+        label: "Relase",
+        type: "number",
+        min: 0.001,
+        max: 5,
+        step: 0.05,
+      },
     ];
     const maxNav = this.customEnabled ? 1 + customFields.length : 1;
 
@@ -255,16 +302,22 @@ export class EditorModal {
         this._toggleCustom(presets);
       } else if (focus >= 2) {
         const f = customFields[focus - 2];
-        if (f.type === "number") {
+        if (
+          f.type === "number" &&
+          typeof f.min === "number" &&
+          typeof f.step === "number"
+        ) {
+          const val = /** @type {number} */ (this.customValues[f.key]);
           this.customValues[f.key] = Math.max(
             f.min,
-            +(this.customValues[f.key] - f.step).toFixed(3),
+            +(val - f.step).toFixed(3),
           );
           this._applyCustom();
-        } else if (f.type === "choice") {
-          const idx = f.options?.indexOf(this.customValues[f.key]);
+        } else if (f.type === "choice" && f.options) {
+          const val = /** @type {string} */ (this.customValues[f.key]);
+          const idx = f.options.indexOf(val);
           this.customValues[f.key] =
-            f.options[(idx - 1 + f.options.length) % f.options?.length];
+            f.options[(idx - 1 + f.options.length) % f.options.length];
           this._applyCustom();
         }
       }
@@ -282,14 +335,20 @@ export class EditorModal {
         this._toggleCustom(presets);
       } else if (focus >= 2) {
         const f = customFields[focus - 2];
-        if (f.type === "number") {
+        if (
+          f.type === "number" &&
+          typeof f.max === "number" &&
+          typeof f.step === "number"
+        ) {
+          const val = /** @type {number} */ (this.customValues[f.key]);
           this.customValues[f.key] = Math.min(
             f.max,
-            +(this.customValues[f.key] + f.step).toFixed(3),
+            +(val + f.step).toFixed(3),
           );
           this._applyCustom();
-        } else if (f.type === "choice") {
-          const idx = f.options?.indexOf(this.customValues[f.key]);
+        } else if (f.type === "choice" && f.options) {
+          const val = /** @type {string} */ (this.customValues[f.key]);
+          const idx = f.options?.indexOf(val);
           this.customValues[f.key] = f.options[(idx + 1) % f.options?.length];
           this._applyCustom();
         }
@@ -530,9 +589,10 @@ export class EditorModal {
         }
         this._applySettings();
         this._renderSettings();
+        return;
       }
 
-      if (isNumber) {
+      if (isNumber && typeof field.min === "number" && typeof field.step === "number") {
         field.value = Math.max(field.min, field.value - field.step);
         this._applySettings();
         this._renderSettings();
@@ -570,8 +630,9 @@ export class EditorModal {
         return;
       }
 
-      if (isNumber) {
-        field.value = Math.min(field.max, field.value + field.step);
+      if (isNumber && typeof field.min === "number" && typeof field.step === "number") {
+        const val = /** @type {number} */ (field.value);
+        field.value = Math.min(field.max, val + field.step);
         this._applySettings();
         this._renderSettings();
         return;
@@ -875,6 +936,7 @@ export class EditorModal {
     const presets = Object.keys(engine.presets);
     const current = track.preset || "pluck";
 
+    /** @type {EditorField[]} */
     const customFields = [
       {
         key: "oscType",
@@ -947,9 +1009,9 @@ export class EditorModal {
     html += `<div class="editor-divider"></div>`;
 
     const toggleSel = this.synthNavIndex === 1 ? " selected" : "";
-    html += `<div class="editor-row${toggleSel} id="custom-toggle-row>`;
+    html += `<div class="editor-row${toggleSel}" id="custom-toggle-row">`;
     html += `<span style="font-weight:500;">Custom Sound</span>`;
-    html += `<div class="toggle" data-on="${this.customEnabled}"><div class="toggle-track"></div><div class="toggle-thumb"></div></div>`;
+    html += `<div class="badge">${this.customEnabled ? "On" : "Off"}</div>`;
     html += `</div>`;
 
     html += `<div class="editor-card-body ${this.customEnabled ? "" : "editor-locked"} id="custom-params">`;
@@ -957,15 +1019,20 @@ export class EditorModal {
       const navIdx = 2 + i;
       const sel = this.synthNavIndex === navIdx ? " selected" : "";
       let control = "";
-      if (f.type === "choice") {
-        control += `<div class="choice-strip small">`;
-        f.options?.forEach((opt) => {
-          const active = opt === this.customEnabled[f.key] ? " active" : "";
-          control += `<div class = "choice-item${active}">${opt}</div>`;
+      if (f.type === "choice" && f.options) {
+        control += `<div class="choice-strip">`;
+        f.options.forEach((opt) => {
+          const active = opt === this.customValues[f.key] ? " active" : "";
+          const label = OSC_LABELS[opt] || opt;
+          control += `<div class = "choice-item${active}">${label}</div>`;
         });
         control += `</div>`;
-      } else {
-        const val = this.customValues[f.key];
+      } else if (
+        f.type === "number" &&
+        typeof f.min === "number" &&
+        typeof f.max === "number"
+      ) {
+        const val = /** @type {number} */ (this.customValues[f.key]);
         const pct = Math.min(
           100,
           Math.max(0, ((val - f.min) / (f.max - f.min)) * 100),
@@ -989,42 +1056,64 @@ export class EditorModal {
 
   _renderSettings() {
     if (!this.contentEl) return;
-    let html = `<div class="editor-panel-title">Settings</div><div class="editor-list">`;
-    html += `<div class="editor-card">`;
-
-    this.settingsFields.forEach((f, i) => {
-      const sel = i === this.selectedSettingIndex ? " selected" : "";
-      let right = "";
-
-      if (f.id === "theme" || f.id === "metronome") {
-        const isOn = f.value === (f.id === "theme" ? "dark" : "on");
-        right = `<div class="toggle" data-on="${isOn}"><div class="toggle-track"></div><div class="toggle-thumb"></div></div>`;
-      } else if (f.type === "number") {
-        const pct = Math.min(
-          100,
-          Math.max(0, ((f.value - f.min) / (f.max - f.min)) * 100),
-        );
-        right = `
-          <div class="slider">
-            <div class="slider-track"><div class="slider-fill" style="width:${pct}%"></div></div>
-            <span class="slider-value">${f.value}${f.unit || ""}</span>
-          </div>`;
-      } else if (f.type === "choice" && f.options) {
-        right += `<div class="choice-strip small">`;
-        f.options.forEach((opt) => {
-          const active = opt === f.value ? " active" : "";
-          right += `<div class="choice-item${active}">${opt}</div>`;
-        });
-        right += `</div>`;
-      }
-
-      html += `<div class="editor-row${sel}"><span>${f.label}</span>${right}</div>`;
-      if (i < this.settingsFields.length - 1)
-        html += `<div class="editor-divider"></div>`;
+    /** @type {string[]} */
+    const groups = [];
+    this.settingsFields.forEach((f) => {
+      if (!groups.includes(f.group)) groups.push(f.group);
     });
 
-    html += `</div>`;
+    let html = `<div class="editor-panel-title">Settings</div>`;
+
+    groups.forEach((g) => {
+      const fields = this.settingsFields.filter((f) => f.group === g);
+      html += `<div class="editor-card">`;
+      html += `<div class="editor-card-title">${g}</div>`;
+
+      fields.forEach((f, idx) => {
+        const globalIdx = this.settingsFields.indexOf(f);
+        const sel = globalIdx === this.selectedSettingIndex ? " selected" : "";
+
+        let right = "";
+        const isToggle = f.id === "theme" || f.id === "metronome";
+
+        if (isToggle) {
+          const on = f.value === (f.id === "theme" ? "dark" : "on");
+          right = `<span class="badge">${on ? (f.id === "theme" ? "Dark" : "On") : f.id === "theme" ? "Light" : "Off"}</span>`;
+        } else if (
+          f.type === "number" &&
+          typeof f.value === "number" &&
+          typeof f.min === "number" &&
+          typeof f.max === "number"
+        ) {
+          const pct = Math.min(
+            100,
+            Math.max(0, ((f.value - f.min) / (f.max - f.min)) * 100),
+          );
+          right = `
+            <div class="slider">
+              <div class="slider-track"><div class="slider-fill" style="width:${pct}%"></div></div>
+              <span class="slider-value">${f.value}${f.unit || ""}</span>
+            </div>
+          `;
+        } else if (f.type === "choice" && f.options) {
+          right += `<div class="choice-strip small">`;
+          f.options.forEach((opt) => {
+            const active = opt === f.value ? " active" : "";
+            right += `<div class="choice-item${active}">${opt}</div>`;
+          });
+          right += `</div>`;
+        }
+
+        html += `<div class="editor-row${sel}"><span>${f.label}</span>${right}</div>`;
+        if (idx < fields.length - 1)
+          html += `<div class="editor-divider"></div>`;
+      });
+
+      html += `</div>`;
+    });
+
     html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Enter toggle</div>`;
+
     this.contentEl.innerHTML = html;
   }
 }
