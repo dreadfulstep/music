@@ -234,6 +234,7 @@ class SynthEngine {
     document.getElementById("play-state")?.classList.remove("active");
   }
 
+  /** @param {File} file */
   async uploadAudioFile(file) {
     const url = URL.createObjectURL(file);
     const id = state.tracks.length;
@@ -241,7 +242,7 @@ class SynthEngine {
       id,
       name: file.name.replace(/\.[^/.]+$/, ""),
       color: [
-        "#fff6b9d",
+        "#ff6b9d",
         "#4ecdc4",
         "#ffe66d",
         "#a78bfa",
@@ -293,7 +294,7 @@ class SynthEngine {
       id,
       name: `Vocal ${id + 1}`,
       color: [
-        "#fff6b9d",
+        "#ff6b9d",
         "#4ecdc4",
         "#ffe66d",
         "#a78bfa",
@@ -317,12 +318,12 @@ class SynthEngine {
 
   async exportProject() {
     const ids = state.tracks.filter((t) => !t.muted).map((t) => t.id);
-    return this._exportTracks(ids, "project.webm");
+    return this._exportTracks(ids, "project.wav");
   }
 
   /** @param {string | number} trackId */
   async exportTrack(trackId) {
-    return this._exportTracks([trackId], `track-${trackId}.webm`);
+    return this._exportTracks([trackId], `track-${trackId}.wav`);
   }
 
   async _exportTracks(trackIds, filename) {
@@ -339,7 +340,7 @@ class SynthEngine {
     maxBeat = Math.max(maxBeat, 16);
     const duration = maxBeat * (60 / state.bpm);
 
-    const buffer = await Tone.Offline(async() => {
+    const buffer = await Tone.Offline(async () => {
       const limiter = new Tone.Limiter(-1).toDestination();
       const compressor = new Tone.Compressor(-20, 2.5).connect(limiter);
       const master = new Tone.Gain(0.45).connect(compressor);
@@ -353,10 +354,107 @@ class SynthEngine {
       for (const track of state.tracks) {
         if (!trackIds.includes(track.id)) continue;
         if (track.type === "audio") {
-          
+          if (track.audioUrl) {
+            const buf = await Tone.Buffer.fromUrl(track.audioUrl);
+            const player = new Tone.Player(buf);
+            player.loop = !!track.loop;
+            player.connect(toneFilter);
+            const dur = track.loop ? undefined : track.duration || buf.duration;
+            player.start(0, 0, dur);
+            players.set(track.id, player);
+          }
+        } else {
+          const preset = this.presets[track.preset] || this.presets.pluck;
+          const minAttack = Math.max(0.003, preset.envelope.attack);
+          const vol =
+            track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
+          const synth = new Tone.PolySynth(Tone.Synth, {
+            maxPolyphony: 24,
+            oscillator: preset.oscillator,
+            envelope: { ...preset.envelope, attack: minAttack },
+            volume: vol,
+          }).connect(toneFilter);
+          synths.set(track.id, synth);
         }
       }
-    })
+
+      state.tracks.forEach((track) => {
+        if (!trackIds.includes(track.id) || track.type === "audio") return;
+        const synth = synths.get(track.id);
+        if (!synth) return;
+        track.notes.forEach((note) => {
+          if (!note.duration || note.duration <= 0) return;
+          const time = note.start * (60 / state.bpm);
+          const dur = note.duration * (60 / state.bpm);
+          synth.triggerAttackRelease(note.pitch, dur, time);
+        });
+      });
+    }, duration);
+
+    const blob = this._audioBufferToWav(buffer);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** @param {AudioBuffer} abuffer */
+  _audioBufferToWav(abuffer) {
+    const numOfChan = abuffer.numberOfChannels;
+    const len = abuffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = numOfChan * bytesPerSample;
+    const byteRate = abuffer.sampleRate * blockAlign;
+    const dataSize = len * blockAlign;
+    const headerSize = 44;
+    const buffer = new ArrayBuffer(dataSize + headerSize);
+    const view = new DataView(buffer);
+    const channels = [];
+    for (let i = 0; i < numOfChan; i++)
+      channels.push(abuffer.getChannelData(i));
+
+    let pos = 0;
+    const writeString = (/** @type {string} */ s) => {
+      for (let i = 0; i < s.length; i++) {
+        view.setUint8(pos++, s.charCodeAt(i));
+      }
+    };
+    const writeUnit16 = (/** @type { number} */ v) => {
+      view.setUint16(pos, v, true);
+      pos += 2;
+    };
+
+    const writeUint32 = (/** @type {number} */ v) => {
+      view.setUint32(pos, v, true);
+      pos += 4;
+    };
+
+    writeString("RIFF");
+    writeUint32(36 + dataSize);
+    writeString("WAVE");
+    writeString("fmt ");
+    writeUint32(16);
+    writeUnit16(1);
+    writeUnit16(numOfChan);
+    writeUint32(abuffer.sampleRate);
+    writeUint32(byteRate);
+    writeUnit16(blockAlign);
+    writeUnit16(16);
+    writeString("data");
+    writeUint32(dataSize);
+
+    for (let i = 0; i < len; i++) {
+      for (let c = 0; c < numOfChan; c++) {
+        let sample = Math.max(-1, Math.min(1, channels[c][i]));
+        sample = sample < 0 ? sample * 32768 : sample * 32767;
+        view.setInt16(pos, sample | 0, true);
+        pos += 2;
+      }
+    }
+
+    return new Blob([buffer], { type: "audio/wav" });
   }
 
   toggleTrackLoop(trackId) {

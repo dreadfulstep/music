@@ -164,6 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           type: "synth",
           preset: item.value,
           muted: false,
+          loop: false,
           notes: [],
         };
         state.tracks.push(newTrack);
@@ -222,7 +223,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   fileInput.style.display = "none";
   document.body.append(fileInput);
   fileInput.addEventListener("change", async(e) => {
-    const file = e.target.files?.[0];
+    const target = /** @type {HTMLInputElement} */ (e.target);
+    const file = target.files?.[0];
     if (file) {
       await engine.uploadAudioFile(file);
       input._updateDisplays();
