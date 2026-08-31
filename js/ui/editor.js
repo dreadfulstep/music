@@ -297,6 +297,7 @@ export class EditorModal {
       if (focus === 0) {
         const idx = presets.indexOf(state.tracks[state.currentTrack]?.preset);
         const newIdx = (idx - 1 + presets.length) % presets.length;
+        this._loadCustomFromCurrent();
         engine.setPreset(state.currentTrack, presets[newIdx]);
       } else if (focus === 1) {
         this._toggleCustom(presets);
@@ -330,6 +331,7 @@ export class EditorModal {
       if (focus === 0) {
         const idx = presets.indexOf(state.tracks[state.currentTrack]?.preset);
         const newIdx = (idx + 1) % presets.length;
+        this._loadCustomFromCurrent();
         engine.setPreset(state.currentTrack, presets[newIdx]);
       } else if (focus === 1) {
         this._toggleCustom(presets);
@@ -371,6 +373,7 @@ export class EditorModal {
   _toggleCustom(presets) {
     this.customEnabled = !this.customEnabled;
     if (this.customEnabled) {
+      this._loadCustomFromCurrent();
       this._applyCustom();
     } else {
       const p = state.tracks[state.currentTrack]?.preset;
@@ -592,7 +595,11 @@ export class EditorModal {
         return;
       }
 
-      if (isNumber && typeof field.min === "number" && typeof field.step === "number") {
+      if (
+        isNumber &&
+        typeof field.min === "number" &&
+        typeof field.step === "number"
+      ) {
         field.value = Math.max(field.min, field.value - field.step);
         this._applySettings();
         this._renderSettings();
@@ -630,7 +637,11 @@ export class EditorModal {
         return;
       }
 
-      if (isNumber && typeof field.min === "number" && typeof field.step === "number") {
+      if (
+        isNumber &&
+        typeof field.min === "number" &&
+        typeof field.step === "number"
+      ) {
         const val = /** @type {number} */ (field.value);
         field.value = Math.min(field.max, val + field.step);
         this._applySettings();
@@ -998,7 +1009,7 @@ export class EditorModal {
 
     const presetSel = this.synthNavIndex === 0 ? " selected" : "";
     html += `<div class="editor-row${presetSel}">`;
-    html += `<div style="display:flex;flex-direction:column;gap:2px;"><span style="font-weight:500;">Sound</span><span style="font-size0.7rem;color:var(--foreground-tertiary);">Select a synthesizer preset</span></div>`;
+    html += `<div style="display:flex;flex-direction:column;gap:2px;"><span style="font-weight:500;">Sound</span><span style="font-size:0.7rem;color:var(--foreground-tertiary);">Select a synthesizer preset</span></div>`;
     html += `<div class="choice-strip" id="preset-strip">`;
     presets.forEach((name) => {
       const active = name === current ? " active" : "";
@@ -1011,10 +1022,10 @@ export class EditorModal {
     const toggleSel = this.synthNavIndex === 1 ? " selected" : "";
     html += `<div class="editor-row${toggleSel}" id="custom-toggle-row">`;
     html += `<span style="font-weight:500;">Custom Sound</span>`;
-    html += `<div class="badge">${this.customEnabled ? "On" : "Off"}</div>`;
+    html += `<div class="toggle" data-on="${this.customEnabled}"><div class="toggle-track"></div><div class="toggle-thumb"></div></div>`;
     html += `</div>`;
 
-    html += `<div class="editor-card-body ${this.customEnabled ? "" : "editor-locked"} id="custom-params">`;
+    html += `<div class="editor-card-body ${this.customEnabled ? "" : "editor-locked"}" id="custom-params">`;
     customFields.forEach((f, i) => {
       const navIdx = 2 + i;
       const sel = this.synthNavIndex === navIdx ? " selected" : "";
@@ -1024,7 +1035,7 @@ export class EditorModal {
         f.options.forEach((opt) => {
           const active = opt === this.customValues[f.key] ? " active" : "";
           const label = OSC_LABELS[opt] || opt;
-          control += `<div class = "choice-item${active}">${label}</div>`;
+          control += `<div class="choice-item${active}">${label}</div>`;
         });
         control += `</div>`;
       } else if (
