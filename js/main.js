@@ -58,6 +58,7 @@ function stopAll() {
   engine.stopTransport();
   state.isRecording = false;
   state.isCountingIn = false;
+  state.isPlaying = false;
   clearCountdown();
   updateTransportButtons();
 }
@@ -214,5 +215,44 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   input.mount();
+
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "audio/*";
+  fileInput.style.display = "none";
+  document.body.append(fileInput);
+  fileInput.addEventListener("change", async(e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await engine.uploadAudioFile(file);
+      input._updateDisplays();
+      renderTimeline();
+    }
+  });
+
+  input.onCombo("shift", "u", () => fileInput.click());
+
+  input.onCombo("shift", "v", async () => {
+    if (engine.isRecordingMic) {
+      await engine.stopMicRecording();
+      input._updateDisplays();
+      renderTimeline();
+    } else {
+      const ok = await engine.startMicRecording();
+      if (ok) {
+        const recBtn = document.querySelector('[data-action="record"]');
+        if (recBtn) recBtn.classList.add("active");
+      }
+    }
+  });
+
+  input.onCombo("shift", "l", () => {
+    engine.toggleTrackLoop(state.currentTrack);
+    renderTimeline();
+  })
+
+  input.onCombo("shift", "p", () => engine.exportProject());
+  input.onCombo("shift", "o", () => engine.exportTrack(state.currentTrack));
+
   renderTimeline();
 });

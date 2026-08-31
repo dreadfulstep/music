@@ -1,3 +1,4 @@
+import { engine } from "./audio/engine.js";
 import { state } from "./state.js";
 
 const PIXELS_PER_BEAT = 40;
@@ -18,6 +19,28 @@ const NOTE_NAMES = [
   "A#",
   "B",
 ];
+
+function drawWaveform(ctx, buffer, x, y, w, h, color) {
+  if (!buffer) return;
+  const width = Math.floor(w);
+  const peaks = new Float32Array(width);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const data = buffer.getChannelData(c);
+    for (let i = 0; i < width; i++) {
+      const start = Math.floor((i / width) * data.length);
+      const end = Math.floor(((i + 1) / width) * data.length);
+      let max = 0;
+      for (let j = start; j < end; j++) max = Math.max(max, Math.abs(data[j]));
+      peaks[i] = Math.max(peaks[i], max);
+    }
+  }
+  ctx.fillStyle = color + "cc";
+  const halfH = h / 2;
+  for (let i = 0; i < width; i++) {
+    const barH = peaks[i] * halfH;
+    ctx.fillRect(x + i, y + halfH - barH, 1, barH * 2);
+  }
+}
 
 /** @param {string} pitch */
 function pitchToSemitone(pitch) {
@@ -212,42 +235,56 @@ export function renderTimeline() {
         ctx.stroke();
       }
 
-      track.notes.forEach((note) => {
-        const x = note.start * PIXELS_PER_BEAT;
-        const w = Math.max(4, note.duration * PIXELS_PER_BEAT);
-        const semi = pitchToSemitone(note.pitch);
-        const y = LANE_HEIGHT - (semi + 1) * rowH;
-        const h = rowH - 1;
-
-        ctx.fillStyle = track.color;
-        ctx.globalAlpha = 0.85;
-
-        // This is insane just to have rounded corners holy
-        const r = 3;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.shadowBlur = 0;
-        ctx.globalAlpha = 1;
-
-        // Pitch label if fwide enough
-        if (w > 30) {
-          ctx.fillStyle = "#0000";
-          ctx.font = "bold 9px ui-monospace, monospace";
-          ctx.textBaseline = "middle";
-          ctx.fillText(note.pitch, x + 4, y + h / 2);
+      if (track.type === "audio") {
+        const buffer = engine.audioBuffers.get(track.id);
+        if (buffer) {
+          const durBeats = track.duration || buffer.duration * (state.bpm / 60);
+          const drawW = durBeats * PIXELS_PER_BEAT;
+          drawWaveform(ctx, buffer, 0, 0, Math.min(drawW, timelineWidth));
         }
-      });
+        if (track.loop) {
+          ctx.fillStyle = track.color;
+          ctx.font = "bold 10px ui-monospace, monospace";
+          ctx.fillText("LOOP", 8, 14);
+        }
+      } else {
+        track.notes.forEach((note) => {
+          const x = note.start * PIXELS_PER_BEAT;
+          const w = Math.max(4, note.duration * PIXELS_PER_BEAT);
+          const semi = pitchToSemitone(note.pitch);
+          const y = LANE_HEIGHT - (semi + 1) * rowH;
+          const h = rowH - 1;
+
+          ctx.fillStyle = track.color;
+          ctx.globalAlpha = 0.85;
+
+          // This is insane just to have rounded corners holy
+          const r = 3;
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.lineTo(x + w - r, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+          ctx.lineTo(x + w, y + h - r);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+          ctx.lineTo(x + r, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+          ctx.lineTo(x, y + r);
+          ctx.quadraticCurveTo(x, y, x + r, y);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+
+          // Pitch label if fwide enough
+          if (w > 30) {
+            ctx.fillStyle = "#0000";
+            ctx.font = "bold 9px ui-monospace, monospace";
+            ctx.textBaseline = "middle";
+            ctx.fillText(note.pitch, x + 4, y + h / 2);
+          }
+        });
+      }
     }
 
     wrap.appendChild(canvas);

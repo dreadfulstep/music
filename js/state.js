@@ -12,8 +12,11 @@
  * @property {string} color
  * @property {string} type
  * @property {string} preset
+ * @property {boolean} loop
  * @property {boolean} muted
  * @property {Note[]} notes
+ * @property {string} [audioUrl]
+ * @property {number} [duration]
  */
 export const state = {
   bpm: 120,
@@ -30,6 +33,7 @@ tracks: [
     "name": "Pad",
     "color": "#a78bfa",
     "type": "synth",
+    "loop": false,
     "preset": "pad",
     "muted": false,
     "notes": [

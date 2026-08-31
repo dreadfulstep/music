@@ -26,3 +26,5 @@ New plan: Edit timeline, settings etc etc all in a large modal that has a sideba
 uhh timeline to view a specific track timeline and edit it. Potentially i will replace the existing modals with this since it would look far cleaner, and a tab to see all the keybinds (and edit them maybe?)
 
 Issue to fix: holding down a key then leaving window focus causes it to be held down (very annoying and bad)
+
+Very cool progress, the UI is actually really pretty even though its designed for keyboard only but i really need a popup modal that is shown on load, probably one to like load a project from a file or recents since that makes a user enable audio iirc
