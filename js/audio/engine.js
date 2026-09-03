@@ -7,6 +7,7 @@ class SynthEngine {
     this.audioPlayers = new Map();
     this.audioBuffers = new Map();
     this.playingNotes = new Map(); // "tid-note" true (preventing double-triggers)
+    /** @type {Record<string, { oscillator: any, envelope: any }>} */
     this.presets = {
       pluck: {
         oscillator: { type: "fattriangle", count: 2, spread: 10 },
@@ -78,13 +79,15 @@ class SynthEngine {
         await this._loadAudioForTrack(track.id, track.audioUrl);
       return;
     }
-    const preset = track.presetData || state.customPresets?.[track.preset] ||  this.presets[track.preset] || this.presets.pluck;
+    const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
+    const preset = track.presetData || customPresets?.[track.preset] ||  this.presets[track.preset] || this.presets.pluck;
 
     const minAttack = Math.max(0.003, preset.envelope.attack);
     const vol =
       track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
 
     const synth = new Tone.PolySynth(Tone.Synth, {
+      /** @ts-ignore */
       maxPolyphony: 24,
       oscillator: preset.oscillator,
       envelope: { ...preset.envelope, attack: minAttack },
@@ -93,6 +96,10 @@ class SynthEngine {
     this.synths.set(track.id, synth);
   }
 
+  /** 
+   * @param {number} trackId
+   * @param {string} url
+   */
   async _loadAudioForTrack(trackId, url) {
     if (!this.toneFilter) return;
     try {
@@ -140,7 +147,8 @@ class SynthEngine {
    */
   setPreset(trackId, presetName) {
     const synth = this.synths.get(trackId);
-    const preset = state.customPresets?.[trackId.preset] || this.presets[presetName];
+    const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
+    const preset = customPresets?.[presetName] || this.presets[presetName];
     if (!synth || !preset) return;
     synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
     state.tracks[trackId].preset = presetName;
@@ -328,6 +336,10 @@ class SynthEngine {
     return this._exportTracks([trackId], `track-${trackId}.wav`);
   }
 
+  /**
+   * @param {(string |number)[]} trackIds
+   * @param {string} filename
+   */
   async _exportTracks(trackIds, filename) {
     let maxBeat = 0;
     state.tracks.forEach((t) => {
@@ -366,7 +378,8 @@ class SynthEngine {
             players.set(track.id, player);
           }
         } else {
-          const preset = track.presetData || state.customPresets?.[track.preset] ||this.presets[track.preset] || this.presets.pluck;
+          const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
+          const preset = track.presetData || customPresets?.[track.preset] ||this.presets[track.preset] || this.presets.pluck;
           const minAttack = Math.max(0.003, preset.envelope.attack);
           const vol =
             track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
@@ -404,7 +417,7 @@ class SynthEngine {
     URL.revokeObjectURL(url);
   }
 
-  /** @param {AudioBuffer | ToneAudioBuffer} abuffer */
+  /** @param {any} abuffer */
   _audioBufferToWav(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
     const len = abuffer.length;
@@ -461,8 +474,9 @@ class SynthEngine {
     return new Blob([buffer], { type: "audio/wav" });
   }
 
+  /** @param {string | number} trackId */
   toggleTrackLoop(trackId) {
-    const track = state.tracks[trackId];
+    const track = state.tracks[/** @type {number} */ (trackId)];
     if (track) track.loop = !track.loop;
     const player = this.audioPlayers.get(trackId);
     if (player) player.loop = !!track.loop;
