@@ -920,7 +920,7 @@ dialog.editor-modal {
   width: 52px;
   flex-shrink: 0;
   background: var(--surface);
-  border-radius: 1px solid var(--border-strong);
+  border: 1px solid var(--border-strong);
   position: relative;
   overflow: hidden;
 }
@@ -1065,10 +1065,10 @@ body,
 }
 
 .editor-card-title {
-  font-size: 0.65rem;;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  columns: var(--foreground-tertiary);
+  color: var(--foreground-tertiary);
   font-weight: 700;
   padding: 0 4px 8px;
   margin: 0;

@@ -20,6 +20,17 @@ const NOTE_NAMES = [
   "B",
 ];
 
+/**
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {import("tone").ToneAudioBuffer} buffer
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @param {string} color
+ * @returns
+ */
 function drawWaveform(ctx, buffer, x, y, w, h, color) {
   if (!buffer) return;
   const width = Math.floor(w);
@@ -46,7 +57,7 @@ function drawWaveform(ctx, buffer, x, y, w, h, color) {
 function pitchToSemitone(pitch) {
   const m = pitch.match(/^([A-G]#?)(\d)$/);
   if (!m) return 12;
-  return (parseInt(m[2]) - 3) * (12 + NOTE_NAMES.indexOf(m[1]));
+  return (parseInt(m[2]) - 3) * 12 + NOTE_NAMES.indexOf(m[1]);
 }
 
 export function renderTimeline() {
@@ -240,7 +251,7 @@ export function renderTimeline() {
         if (buffer) {
           const durBeats = track.duration || buffer.duration * (state.bpm / 60);
           const drawW = durBeats * PIXELS_PER_BEAT;
-          drawWaveform(ctx, buffer, 0, 0, Math.min(drawW, timelineWidth));
+          drawWaveform(ctx, buffer, 0, 0, Math.min(drawW, timelineWidth), LANE_HEIGHT, track.color);
         }
         if (track.loop) {
           ctx.fillStyle = track.color;

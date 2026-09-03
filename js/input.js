@@ -217,6 +217,9 @@ class InputManager {
       if (modal.isOpen() || editorModal.isOpen()) return;
 
       if (e.repeat) return;
+      if (!this.audioReady && e.key !== "Tab") {
+        await this._ensureAudio();
+      }
 
       const key = e.key.toLowerCase();
 

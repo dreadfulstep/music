@@ -60,6 +60,8 @@ class SynthEngine {
     this.delay = new Tone.FeedbackDelay("8n", 0.12).connect(this.reverb);
     this.toneFilter = new Tone.Filter(8000, "lowpass").connect(this.delay);
 
+    this.master.gain.value = 0.6;
+
     for (const track of state.tracks) {
       this._initTrack(track);
     }
@@ -70,12 +72,13 @@ class SynthEngine {
 
   /** @param {import("../state.js").Track} track */
   async _initTrack(track) {
+    if (!this.toneFilter) return;
     if (track.type === "audio") {
       if (track.audioUrl)
         await this._loadAudioForTrack(track.id, track.audioUrl);
       return;
     }
-    const preset = this.presets[track.preset] || this.presets.pluck;
+    const preset = track.presetData || state.customPresets?.[track.preset] ||  this.presets[track.preset] || this.presets.pluck;
 
     const minAttack = Math.max(0.003, preset.envelope.attack);
     const vol =
@@ -91,6 +94,7 @@ class SynthEngine {
   }
 
   async _loadAudioForTrack(trackId, url) {
+    if (!this.toneFilter) return;
     try {
       const buffer = await Tone.Buffer.fromUrl(url);
       this.audioBuffers.set(trackId, buffer);
@@ -131,16 +135,14 @@ class SynthEngine {
   }
 
   /**
-   * @param {string | number} trackId
+   * @param {number} trackId
    * @param {string} presetName
    */
   setPreset(trackId, presetName) {
     const synth = this.synths.get(trackId);
-    // @ts-ignore
-    const preset = this.presets[presetName];
+    const preset = state.customPresets?.[trackId.preset] || this.presets[presetName];
     if (!synth || !preset) return;
     synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
-    // @ts-ignore
     state.tracks[trackId].preset = presetName;
   }
 
@@ -162,7 +164,7 @@ class SynthEngine {
     if (!this.toneFilter) return;
     if (track.type === "audio") return;
     // @ts-ignore
-    const preset = this.presets[track.preset] || this.presets.pluck;
+    const preset = track.presetData || state.customPresets?.[track.preset] || this.presets[track.preset] || this.presets.pluck;
     const minAttack = Math.max(0.003, preset.envelope.attack);
     const vol =
       track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
@@ -170,7 +172,7 @@ class SynthEngine {
       // @ts-ignore
       maxPolyphony: 24,
       oscillator: preset.oscillator,
-      envelope: preset.envelope,
+      envelope: { ...preset.envelope, attack: minAttack },
       volume: vol,
     }).connect(this.toneFilter);
     this.synths.set(track.id, synth);
@@ -340,7 +342,7 @@ class SynthEngine {
     maxBeat = Math.max(maxBeat, 16);
     const duration = maxBeat * (60 / state.bpm);
 
-    const buffer = await Tone.Offline(async () => {
+    const toneBuffer = await Tone.Offline(async () => {
       const limiter = new Tone.Limiter(-1).toDestination();
       const compressor = new Tone.Compressor(-20, 2.5).connect(limiter);
       const master = new Tone.Gain(0.45).connect(compressor);
@@ -364,16 +366,16 @@ class SynthEngine {
             players.set(track.id, player);
           }
         } else {
-          const preset = this.presets[track.preset] || this.presets.pluck;
+          const preset = track.presetData || state.customPresets?.[track.preset] ||this.presets[track.preset] || this.presets.pluck;
           const minAttack = Math.max(0.003, preset.envelope.attack);
           const vol =
             track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
           const synth = new Tone.PolySynth(Tone.Synth, {
-            maxPolyphony: 24,
             oscillator: preset.oscillator,
             envelope: { ...preset.envelope, attack: minAttack },
             volume: vol,
           }).connect(toneFilter);
+          synth.maxPolyphony = 16;
           synths.set(track.id, synth);
         }
       }
@@ -391,6 +393,8 @@ class SynthEngine {
       });
     }, duration);
 
+    const buffer = toneBuffer.get ? toneBuffer.get() : toneBuffer;
+    if (!buffer) return;
     const blob = this._audioBufferToWav(buffer);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -400,7 +404,7 @@ class SynthEngine {
     URL.revokeObjectURL(url);
   }
 
-  /** @param {AudioBuffer} abuffer */
+  /** @param {AudioBuffer | ToneAudioBuffer} abuffer */
   _audioBufferToWav(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
     const len = abuffer.length;

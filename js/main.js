@@ -29,6 +29,15 @@ function updatePlayhead() {
     timeline.scrollLeft = x - 100;
   }
 
+  const timeEl = document.querySelector(".nav-readout:nth-child(2)");
+  if (timeEl) {
+    const s = Tone.Transport.seconds;
+    const mm = Math.floor(s / 60).toString().padStart(2, "0");
+    const ss = Math.floor(s%60).toString().padStart(2, "0");
+    const ms = Math.floor((s % 1) * 100).toString().padStart(2, "0");
+    timeEl.textContent = `${mm}:${ss}:${ms}`;
+  }
+
   requestAnimationFrame(updatePlayhead);
 }
 

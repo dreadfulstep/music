@@ -78,7 +78,7 @@ export class EditorModal {
         group: "Audio",
         id: "masterVolume",
         label: "Master Volume",
-        value: 80,
+        value: 60,
         min: 0,
         max: 100,
         step: 5,
@@ -476,7 +476,7 @@ export class EditorModal {
       return;
     }
 
-    if ((e.key === "Arrowleft" || e.key.toLowerCase() === "a") && e.shiftKey) {
+    if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && e.shiftKey) {
       e.preventDefault();
       if (note) {
         note.duration = Math.max(0.0625, note.duration - 0.25);
