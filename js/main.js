@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         meta: t.preset,
       })),
       (item) => {
-        state.currentTrack = item.value;
+        state.currentTrack = state.tracks.findIndex((t) => t.id === item.value);
         input._updateDisplays();
         renderTimeline();
       },

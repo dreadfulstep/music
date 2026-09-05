@@ -33,8 +33,10 @@ const OSC_LABELS = {
 
 /** @type {Record<string, string>} */
 const TAB_ICONS = {
+  tracks: "list-music",
   timeline: "bar-chart-2",
   synth: "sliders-horizontal",
+  presets: "audio-lines",
   settings: "settings",
 };
 
@@ -55,6 +57,13 @@ export class EditorModal {
     this.selectedSettingIndex = 0;
     this.synthNavIndex = 0; // 0=preset, 1=custom toggle, 2+= paramas
     this.customEnabled = false;
+
+    this.tracksNavIndex = 0;
+    this.presetsNavIndex = 0;
+    this.creatingTrack = false;
+    this.creatingPreset = false;
+    ((this.newTrackName = "Track"), (this.newTrackPreset = "pluck"));
+    this.newPresetName = "Custom";
 
     /** @type {Record<string, string|number>} */
     this.customValues = {
@@ -105,8 +114,10 @@ export class EditorModal {
 
     this._boundKey = this._handleKey.bind(this);
     this._tabs = [
+      { id: "tracks", label: "Tracks" },
       { id: "timeline", label: "Timeline" },
       { id: "synth", label: "Synth" },
+      { id: "presets", label: "Presets" },
       { id: "settings", label: "Settings" },
     ];
   }
@@ -223,8 +234,209 @@ export class EditorModal {
   }
 
   /** @param {KeyboardEvent} e */
+  _handleTracksKey(e) {
+    if (this.creatingTrack) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        this.creatingTrack = false;
+        this.tracksNavIndex = state.tracks.length;
+        this._renderTracks();
+        return;
+      }
+
+      const maxnav = 3;
+      if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        if (this.tracksNavIndex > 0) this.tracksNavIndex--;
+        this._renderTracks();
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (this.tracksNavIndex < maxnav) this.tracksNavIndex++;
+        this._renderTracks();
+        return;
+      }
+
+      if (this.tracksNavIndex === 0) {
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          this.newTrackName = this.newTrackName.slice(0, -1);
+          this._renderTracks();
+          return;
+        }
+        if (/^[a-zA-Z0-9_\- ]$/.test(e.key) && e.key.length === 1) {
+          e.preventDefault();
+          this.newTrackName += e.key;
+          this._renderTracks();
+        }
+      }
+
+      if (this.tracksNavIndex === 1) {
+        const customPresets = /** @type {Record<string, any>} */ (
+          state.customPresets
+        );
+        const presets = [
+          ...Object.keys(engine.presets),
+          ...Object.keys(customPresets || {}),
+        ];
+        const idx = presets.indexOf(this.newTrackPreset);
+        if ((e.key === "ArrowLeft" || e.key.toLowerCase() === "a") && idx > 0) {
+          e.preventDefault();
+          this.newTrackPreset = presets[idx - 1];
+          this._renderTracks();
+          return;
+        }
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (this.tracksNavIndex === 2) {
+          const id =
+            state.tracks.length > 0
+              ? Math.max(...state.tracks.map((t) => t.id)) + 1
+              : 0;
+          const colors = [
+            "#ff6b9dd",
+            "#4ecdcc4",
+            "#ffe66d",
+            "#a78bfa",
+            "#5c8aff",
+            "#ff8a5c",
+            "#5cff8a",
+          ];
+          const newTrack = {
+            id,
+            name: this.newTrackName.trim() || `Track ${id + 1}`,
+            color: colors[id % colors.length],
+            type: "synth",
+            preset: this.newTrackPreset,
+            muted: false,
+            loop: false,
+            notes: [],
+          };
+          state.tracks.push(newTrack);
+          engine.addTrack(newTrack);
+          state.currentTrack = state.tracks.length - 1;
+          this.creatingTrack = false;
+          ((this.newTrackName = "Track"), (this.newTrackPreset = "pluck"));
+          this.tracksNavIndex = state.tracks.length - 1;
+          this._updateTrackDisplay();
+          renderTimeline();
+          this._renderTracks();
+        }
+        return;
+      }
+      return;
+    }
+
+    const maxIdx = state.tracks.length;
+    if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
+      e.preventDefault();
+      if (this.tracksNavIndex > 0) this.tracksNavIndex--;
+      this._renderTracks();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (this.tracksNavIndex < maxIdx) this.tracksNavIndex++;
+      this._renderTracks();
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (this.tracksNavIndex < state.tracks.length) {
+        state.currentTrack = this.tracksNavIndex;
+        this._updateTrackDisplay();
+        renderTimeline();
+        this._renderTracks();
+      } else {
+        this.creatingTrack = true;
+        this.tracksNavIndex = 0;
+        this.newTrackName = `Track ${state.tracks.length + 1}`;
+        this.newTrackPreset = "pluck";
+        this._renderTracks();
+      }
+      return;
+    }
+
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      if (
+        this.tracksNavIndex < state.tracks.length &&
+        state.tracks.length > 0
+      ) {
+        state.tracks.splice(this.tracksNavIndex, 1);
+        if (state.currentTrack >= state.tracks.length) {
+          state.currentTrack = Math.max(0, state.tracks.length - 1);
+        }
+        this.tracksNavIndex = Math.min(
+          this.tracksNavIndex,
+          state.tracks.length,
+        );
+        this._updateTrackDisplay();
+        renderTimeline();
+        this._renderTimeline();
+      }
+      return;
+    }
+  }
+
+  /** @param {KeyboardEvent} e */
+  _handlePresetsKey(e) {
+    const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
+    const presetNames = Object.keys(customPresets || {});
+
+    if (this.creatingPreset) {
+      const fields = [
+        { key: "name", label: "Name"},
+        { key: "oscType", label: "Oscillator Type", type: "choice", options: ["sine", "square", "sawtooth", "triangle", "fmsine", "fmsquare", "fmtriangle", "amsine"]},
+        { key: "attack", label: "Attack", type: "number", min: 0.001, max: 2, step: 0.01},
+        { key: "decay", label: "Decay", type: "number", min: 0.001, max: 2, step: 0.01 },
+        { key: "sustain", label: "Sustain", type: "number", min: 0, max: 1, step: 0.05 },
+        { key: "release", label: "Release", type: "number", min: 0.001, max: 5, step: 0.05},
+      ];
+      const maxNav = fields.length + 1; // +1 for cancel
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        this.creatingPreset = false;
+        this.presetsNavIndex = presetNames.length;
+        this._renderPresets();
+        return;
+      }
+
+      if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        if (this.presetsNavIndex > 0) this.presetsNavIndex--;
+        this._renderPresets();
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (this.presetsNavIndex < maxNav) this.presetsNavIndex++;
+        this._renderPresets();
+        return;
+      }
+
+      const f = fields[this.presetsNavIndex];
+      
+    };
+  }
+
+  /** @param {KeyboardEvent} e */
   _handleSynthKey(e) {
-    const presets = Object.keys(engine.presets);
+    const track = state.tracks[state.currentTrack];
+    if (!track) return;
+
+    const customPresets = /** @type {Record<string, any>} */ (
+      state.customPresets
+    );
+    const presets = [
+      ...Object.keys(engine.presets),
+      ...Object.keys(customPresets || {}),
+    ];
     /** @type {EditorField[]} */
     const customFields = [
       {
@@ -660,9 +872,11 @@ export class EditorModal {
 
   _loadCustomFromCurrent() {
     const track = state.tracks[state.currentTrack];
-    /** @type {Record<string, any>} */
-    const presets = engine.presets;
-    const preset = presets[track?.preset];
+    const customPresets = /** @type {Record<string, any>} */ (
+      state.customPresets
+    );
+    const preset =
+      engine.presets[track?.preset] || customPresets?.[track?.preset];
     if (preset) {
       this.customValues.oscType = preset.oscillator?.type || "sawtooth";
       this.customValues.attack = preset.envelope?.attack || 0.05;
@@ -941,11 +1155,57 @@ export class EditorModal {
     }
   }
 
+  _renderTracks() {
+    if (!this.contentEl) return;
+
+    if (this.creatingTrack) {
+      const customPresets = /** @type {Record<string, any>} */ (
+        state.customPresets
+      );
+      const presets = [
+        ...Object.keys(engine.presets),
+        ...Object.keys(customPresets || {}),
+      ];
+
+      let html = `<div class="editor-panel-title">New Track</div>`;
+      html += `<div class="editor-card">`;
+
+      const nameSel = this.tracksNavIndex === 0 ? " selected" : "";
+      html += `<div class="editor-row${nameSel}"><span>Name</span><span class="editor-row-value">${this.newTrackName}</span></div>`;
+      html += `<div class="editor-divider"></div>`
+
+      const presetSel = this.tracksNavIndex === 1 ? " selected" : "";
+      html += `<div class="editor-row${presetSel}"><span>Preset</span><div class="choice-strip">`;
+      presets.forEach((p) => {
+        const active = p === this.newTrackPreset ? " active" : "";
+        html += `<div class="choice-item${active}"${p}></div>`;
+      });
+      html += `</div></div>`;
+      html += `<div class="editor-divider"></div>`;
+    }
+  }
+
   _renderSynth() {
     if (!this.contentEl) return;
     const track = state.tracks[state.currentTrack];
-    const presets = Object.keys(engine.presets);
-    const current = track.preset || "pluck";
+
+    if (!track) {
+      this.contentEl.innerHTML = `
+        <div class="editor-panel-title>Synths</div>
+        <div class="editor-empty">No active track. Create one in the Tracks tab.</div>
+        <div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Enter toggle</div>
+      `;
+      return;
+    }
+
+    const customPreset = /** @type {Record<string, any>} */ (
+      state.customPresets
+    );
+    const presets = [
+      ...Object.keys(engine.presets),
+      ...Object.keys(customPreset || {}),
+    ];
+    const current = track?.preset || "pluck";
 
     /** @type {EditorField[]} */
     const customFields = [
@@ -1126,6 +1386,14 @@ export class EditorModal {
     html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Enter toggle</div>`;
 
     this.contentEl.innerHTML = html;
+  }
+
+  _updateTrackDisplay() {
+    const t = state.tracks[state.currentTrack];
+    const trackEl = document.getElementById("track-display");
+    const presetEl = document.getElementById("preset-display");
+    if (trackEl) trackEl.textContent = t ? `${t.id + 1}. ${t.name}` : "-";
+    if (presetEl) presetEl.textContent = t ? t.preset : "-";
   }
 }
 
