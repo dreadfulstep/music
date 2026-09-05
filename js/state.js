@@ -31,6 +31,7 @@ export const state = {
   /** @type {Track[]} */
   tracks: [],
 
+  /** @type {any} */
   customPresets: {},
 
   keymap: {

@@ -114,75 +114,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
 
   input.onCombo("shift", "1", () => {
-    modal.open(
-      "Select Track",
-      state.tracks.map((t) => ({
-        label: t.name,
-        value: t.id,
-        color: t.color,
-        meta: t.preset,
-      })),
-      (item) => {
-        state.currentTrack = state.tracks.findIndex((t) => t.id === item.value);
-        input._updateDisplays();
-        renderTimeline();
-      },
-    );
+    if (editorModal.isOpen()) return;
+    editorModal.open("tracks");
   });
 
   input.onCombo("shift", "2", () => {
-    modal.open(
-      "Select Preset",
-      Object.keys(engine.presets).map((name) => ({
-        label: name,
-        value: name,
-        meta:
-          state.tracks[state.currentTrack]?.preset === name ? "current" : "",
-      })),
-      (item) => {
-        engine.setPreset(state.currentTrack, item.value);
-        input._updateDisplays();
-        renderTimeline();
-      },
-    );
+    if (editorModal.isOpen()) return;
+    editorModal.open("synth");
   });
 
   input.onCombo("shift", "3", () => {
-    modal.open(
-      "New Track",
-      Object.keys(engine.presets).map((name) => ({
-        label: name,
-        value: name,
-      })),
-      (item) => {
-        const id = state.tracks.length;
-        const colors = [
-          "#ff6b9d",
-          "#4ecdc4",
-          "#ffe66d",
-          "#a78bfa",
-          "#5c8aff",
-          "#ff8a5c",
-          "#5cff8a",
-        ];
-
-        const newTrack = {
-          id,
-          name: `Track ${id + 1}`,
-          color: colors[id % colors.length],
-          type: "synth",
-          preset: item.value,
-          muted: false,
-          loop: false,
-          notes: [],
-        };
-        state.tracks.push(newTrack);
-        engine.addTrack(newTrack);
-        state.currentTrack = id;
-        input._updateDisplays();
-        renderTimeline();
-      },
-    );
+    if (editorModal.isOpen()) return;
+    editorModal.open("tracks");
+    editorModal.beginNewTrack();
   });
 
   // Mute

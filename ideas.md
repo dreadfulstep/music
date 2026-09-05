@@ -30,3 +30,5 @@ Issue to fix: holding down a key then leaving window focus causes it to be held 
 Very cool progress, the UI is actually really pretty even though its designed for keyboard only but i really need a popup modal that is shown on load, probably one to like load a project from a file or recents since that makes a user enable audio iirc
 
 I really did lack programming yesterday, but im back maybe? I need to add beats for specific tracks, specific track volume control, improve main layout, add a projects modal on load and whatnot. Im sure theres more but i got voice recording, audio file uploading, and exporting down so most of the stuff i wanted is complete
+
+Seems to be a crackling issue, need to fix soon but oh well

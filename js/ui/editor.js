@@ -58,12 +58,15 @@ export class EditorModal {
     this.synthNavIndex = 0; // 0=preset, 1=custom toggle, 2+= paramas
     this.customEnabled = false;
 
+    this._ro = null;
+
     this.tracksNavIndex = 0;
     this.presetsNavIndex = 0;
     this.creatingTrack = false;
     this.creatingPreset = false;
     ((this.newTrackName = "Track"), (this.newTrackPreset = "pluck"));
     this.newPresetName = "Custom";
+    /** @type {Record<string, any>} */
     this.newPresetsValue = {
       oscType: "sawtooth",
       attack: 0.05,
@@ -72,7 +75,7 @@ export class EditorModal {
       release: 1.0,
     };
 
-    /** @type {Record<string, string|number>} */
+    /** @type {Record<string, any>} */
     this.customValues = {
       oscType: "sawtooth",
       attack: 0.05,
@@ -129,6 +132,17 @@ export class EditorModal {
     ];
   }
 
+  /**
+   * @param {string} name
+   * @param {string} fallback
+   */
+  _css(name, fallback) {
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
+    return v || fallback;
+  }
+
   _ensureCreated() {
     if (this.dialog) return;
 
@@ -173,10 +187,12 @@ export class EditorModal {
     }
   }
 
-  open() {
+  /** @param {"tracks"|"timeline"|"synth"|"presets"|"settings"} [tab] */
+  open(tab = "tracks") {
     this._ensureCreated();
     this.opened = true;
-    this.activeTab = 0;
+    const idx = this._tabs.findIndex((t) => t.id === tab);
+    this.activeTab = idx >= 0 ? idx : 0;
     this.selectedNoteIndex = 0;
     this.selectedPresetIndex = 0;
     this.customValues;
@@ -193,12 +209,24 @@ export class EditorModal {
 
   close() {
     this.opened = false;
+    this.creatingTrack = false;
+    this.creatingPreset = false;
+    this._ro?.disconnect();
+    this._ro = null;
     this.dialog?.close();
     window.removeEventListener("keydown", this._boundKey);
   }
 
   isOpen() {
     return this.opened;
+  }
+
+  beginNewTrack() {
+    this.creatingTrack = true;
+    this.tracksNavIndex = 0;
+    this.newTrackName = `Track ${state.tracks.length + 1}`;
+    this.newTrackPreset = "pluck";
+    this._renderTracks();
   }
 
   /** @param {Note} note */
@@ -213,6 +241,7 @@ export class EditorModal {
   /** @param {KeyboardEvent} e */
   _handleKey(e) {
     if (e.key === "Escape" || e.key === "x" || e.key === "X") {
+      if (this.creatingTrack || this.creatingPreset) return; // let those handlers deal with it
       e.preventDefault();
       this.close();
       return;
@@ -296,6 +325,15 @@ export class EditorModal {
           this._renderTracks();
           return;
         }
+        if (
+          (e.key === "ArrowRight" || e.key.toLowerCase() === "d") &&
+          idx < presets.length - 1
+        ) {
+          e.preventDefault();
+          this.newTrackPreset = presets[idx + 1];
+          this._renderTracks();
+          return;
+        }
       }
 
       if (e.key === "Enter") {
@@ -306,8 +344,8 @@ export class EditorModal {
               ? Math.max(...state.tracks.map((t) => t.id)) + 1
               : 0;
           const colors = [
-            "#ff6b9dd",
-            "#4ecdcc4",
+            "#ff6b9d",
+            "#4ecdcc",
             "#ffe66d",
             "#a78bfa",
             "#5c8aff",
@@ -385,7 +423,7 @@ export class EditorModal {
           state.tracks.length,
         );
         this._updateTrackDisplay();
-        renderTimeline();
+        this._renderTracks();
         this._renderTimeline();
       }
       return;
@@ -498,7 +536,7 @@ export class EditorModal {
           this._renderPresets();
           return;
         }
-        if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+        if (e.key === "ArrowRight" || e.key.toLowerCase() === "a") {
           e.preventDefault();
           this.newPresetsValue[f.key] = f.options[(idx + 1) % f.options.length];
           this._renderPresets();
@@ -531,11 +569,11 @@ export class EditorModal {
 
       if (e.key === "Enter") {
         e.preventDefault();
-        if (this.presetsNavIndex === maxNav - 1) {
+        if (this.presetsNavIndex === maxNav) {
           this.creatingPreset = false;
           this.presetsNavIndex = presetNames.length;
           this._renderPresets();
-        } else if (this.presetsNavIndex === maxNav - 2) {
+        } else if (this.presetsNavIndex === maxNav - 1) {
           const name = this.newPresetName.trim() || "custom";
           if (!state.customPresets) state.customPresets = {};
           state.customPresets[name] = {
@@ -557,7 +595,7 @@ export class EditorModal {
     }
 
     const maxIdx = presetNames.length;
-    if (e.key === "ArrowUp" || e.key.toLowerCase === "w") {
+    if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
       e.preventDefault();
       if (this.presetsNavIndex > 0) this.presetsNavIndex--;
       this._renderPresets();
@@ -579,7 +617,7 @@ export class EditorModal {
         renderTimeline();
         this._renderPresets();
       } else {
-        this.creatingPreset = false;
+        this.creatingPreset = true;
         this.presetsNavIndex = 0;
         this.newPresetName = "Custom";
         this.newPresetsValue = {
@@ -985,6 +1023,7 @@ export class EditorModal {
               : "on";
         if (field.id === "theme") {
           document.documentElement.setAttribute("data-theme", field.value);
+          this._render();
         }
         this._applySettings();
         this._renderSettings();
@@ -1105,12 +1144,12 @@ export class EditorModal {
     const viewport = document.querySelector(".editor-timeline-viewport");
     if (!canvas || !viewport) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const viewRect = viewport.getBoundingClientRect();
     const viewW = viewRect.width;
     const viewH = viewRect.height;
 
-    const ppb = 60;
+    const ppb = viewW < 640 ? 44 : 60;
     let maxBeat = 16;
     notes.forEach((n) => {
       maxBeat = Math.max(maxBeat, n.start + n.duration);
@@ -1124,13 +1163,17 @@ export class EditorModal {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, contentW, viewH);
 
-    ctx.fillStyle =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--background")
-        .trim() || "#0a0a0c";
+    const bg = this._css("--background", "#0a0a0c");
+    const border = this._css("--border", "rgba(128,128,128,0.15)");
+    const borderStrong = this._css("--border-strong", "rgba(128,128,128,0.3)");
+    const fgTertiary = this._css("--foreground-tertiary", "#777");
+    const fg = this._css("--foreground", "#fff");
+    const ink = this._css("--background", "#000");
+
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, contentW, viewH);
 
     const semitones = 25;
@@ -1140,40 +1183,30 @@ export class EditorModal {
       const y = i * rowH;
       const ni = i % 12;
       const isSharp = ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
-      ctx.strokeStyle = isSharp
-        ? "rgba(255,255,255,0.06)"
-        : "rgba(255,255,255,0.03)";
+      ctx.globalAlpha = isSharp ? 0.7 : 0.4;
+      ctx.strokeStyle = border;
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(contentW, y);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
 
     for (let i = 0; i <= maxBeat; i++) {
       const x = i * ppb;
       const isMeasure = i % 4 === 0;
       ctx.lineWidth = isMeasure ? 1.5 : 0.5;
-      ctx.strokeStyle = isMeasure
-        ? getComputedStyle(document.documentElement)
-            .getPropertyValue("--border-strong")
-            .trim()
-        : getComputedStyle(document.documentElement)
-            .getPropertyValue("--border")
-            .trim();
+      ctx.strokeStyle = isMeasure ? borderStrong : border;
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, viewH);
       ctx.stroke();
 
-      if (!isMeasure) {
-        ctx.fillStyle =
-          getComputedStyle(document.documentElement)
-            .getPropertyValue("--foreground-tertiary")
-            .trim() || "#666";
-        ctx.font = "10px ui-monospace, monospace";
-        ctx.textBaseline = "top";
-        ctx.fillText(String(i), x + 4, 4);
-      }
+      ctx.fillStyle = fgTertiary;
+      ctx.font = "10px ui-monospace, monospace";
+      ctx.textBaseline = "top";
+      ctx.fillText(String(i), x + 4, 4);
     }
 
     const noteNames = [
@@ -1201,7 +1234,6 @@ export class EditorModal {
         y = viewH - (semi + 1) * rowH;
       }
       const nh = rowH - 1;
-
       const isSelected = i === this.selectedNoteIndex;
 
       ctx.shadowColor = track.color;
@@ -1227,16 +1259,13 @@ export class EditorModal {
       ctx.globalAlpha = 1;
 
       if (isSelected) {
-        ctx.strokeStyle =
-          getComputedStyle(document.documentElement)
-            .getPropertyValue("--foreground")
-            .trim() || "#fff";
+        ctx.strokeStyle = fg;
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
 
       if (nw > 28) {
-        ctx.fillStyle = "#000";
+        ctx.fillStyle = ink;
         ctx.font = "bold 10px ui-monospace, monospace";
         ctx.textBaseline = "middle";
         ctx.fillText(note.pitch, x + 5, y + nh / 2);
@@ -1270,6 +1299,15 @@ export class EditorModal {
       this._drawEditorPianoRoll();
       this._drawTimelineCanvas(track, notes);
     });
+    this._ro?.disconnect();
+    const viewport = document.querySelector(".editor-timeline-viewport");
+    if (viewport) {
+      this._ro = new ResizeObserver(() => {
+        this._drawEditorPianoRoll();
+        this._drawTimelineCanvas(track, notes);
+      });
+      this._ro.observe(viewport);
+    }
   }
 
   _drawEditorPianoRoll() {
@@ -1280,7 +1318,7 @@ export class EditorModal {
     const wrap = canvas?.parentElement;
     if (!canvas || !wrap) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const rect = wrap.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
@@ -1292,7 +1330,13 @@ export class EditorModal {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const white = this._css("--surface-raised", "#e8e8ec");
+    const black = this._css("--tertiary", "#2a2a32");
+    const line = this._css("--border-strong", "rgba(128,128,128,0.3)");
+    const fgOnWhite = this._css("--foreground", "#111");
+    const fgOnBlack = this._css("--foreground-secondary", "#ccc");
 
     const semitones = 25;
     const rowH = h / semitones;
@@ -1318,22 +1362,17 @@ export class EditorModal {
       const ni = i % 12;
       const isSharp = ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
 
-      if (isSharp) {
-        ctx.fillStyle = "rgba(0,0,0,0.45)";
-        ctx.fillRect(0, y, w, rowH);
-      } else {
-        ctx.fillStyle = "rgba(255,255,255,0.95)";
-        ctx.fillRect(0, y, w, rowH);
-      }
+      ctx.fillStyle = isSharp ? black : white;
+      ctx.fillRect(0, y, w, rowH);
 
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.strokeStyle = line;
       ctx.beginPath();
       ctx.moveTo(0, y + rowH);
       ctx.lineTo(w, y + rowH);
       ctx.stroke();
 
       const octave = Math.floor(i / 12) + 3;
-      ctx.fillStyle = isSharp ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.8)";
+      ctx.fillStyle = isSharp ? fgOnBlack : fgOnWhite;
       ctx.font = "9px ui-monospace, monospace";
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
@@ -1382,12 +1421,14 @@ export class EditorModal {
     }
 
     let html = `<div class="editor-panel-title">Tracks</div>`;
-    html += `<div class="editor-list">`
+    html += `<div class="editor-list">`;
 
     state.tracks.forEach((t, i) => {
       const sel = i === this.tracksNavIndex ? " selected" : "";
       const activeTrack = i === state.currentTrack ? " ●" : "";
-      const mutedBadge = t.muted ? `<span class="editor-row-badge" style="background:#ff4757;">MUTE</span>` : "";
+      const mutedBadge = t.muted
+        ? `<span class="editor-row-badge" style="background:#ff4757;">MUTE</span>`
+        : "";
       html += `
         <div class="editor-row${sel}">
             <div style="display:flex;align-items:center;gap:10px;">
@@ -1398,10 +1439,11 @@ export class EditorModal {
                 <span class="editor-row-meta">${t.preset}</span>
                 ${mutedBadge}  
             </div>
-        </div>`
+        </div>`;
     });
 
-    const newSel = this.tracksNavIndex === state.tracks.length ? " selected" : "";
+    const newSel =
+      this.tracksNavIndex === state.tracks.length ? " selected" : "";
     html += `<div class="editor-row${newSel}" style="color:var(--accent-text);font-weight:600;"><span>+ New Track</span></div>`;
     html += `</div>`;
     html += `<div class="editor-hint-row">↑/↓ navigate · Enter select/create · Del remove · W/S tabs</div>`;
@@ -1706,10 +1748,10 @@ export class EditorModal {
       });
 
       html += `<div class="editor-divider"></div>`;
-      const saveSel = this.presetsNavIndex === maxNav - 2 ? " selected" : "";
+      const saveSel = this.presetsNavIndex === maxNav - 1 ? " selected" : "";
       html += `<div class="editor-row${saveSel}" style="color:var(--accent-text);font-weight:600;"><span>Save Preset</span></div>`;
       html += `<div class="editor-divider"></div>`;
-      const cancelSel = this.presetsNavIndex === maxNav - 1 ? " selected" : "";
+      const cancelSel = this.presetsNavIndex === maxNav ? " selected" : "";
       html += `<div class="editor-row${cancelSel}"><span>Cancel</span></div>`;
       html += `</div>`;
       html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Type name · Enter save · Esc cancel</div>`;
@@ -1719,7 +1761,7 @@ export class EditorModal {
 
     let html = `<div class="editor-panel-title">Presets</div>`;
     html += `<div class="editor-list">`;
-    
+
     presetNames.forEach((name, i) => {
       const sel = i === this.presetsNavIndex ? " selected" : "";
       const p = customPresets[name];
@@ -1731,7 +1773,8 @@ export class EditorModal {
         </div>`;
     });
 
-    const newSel = this.presetsNavIndex === presetNames.length ? " selected" : "";
+    const newSel =
+      this.presetsNavIndex === presetNames.length ? " selected" : "";
     html += `<div class="editor-row${newSel}" style="color:var(--accent-text);font-weight:600;>+ New Preset</div>`;
     html += `</div>`;
     html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Type name · Enter save · Esc cancel</div>`;
