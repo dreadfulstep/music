@@ -64,6 +64,13 @@ export class EditorModal {
     this.creatingPreset = false;
     ((this.newTrackName = "Track"), (this.newTrackPreset = "pluck"));
     this.newPresetName = "Custom";
+    this.newPresetsValue = {
+      oscType: "sawtooth",
+      attack: 0.05,
+      decay: 0.3,
+      sustain: 0.5,
+      release: 1.0,
+    };
 
     /** @type {Record<string, string|number>} */
     this.customValues = {
@@ -228,8 +235,10 @@ export class EditorModal {
       return;
     }
 
-    if (tab === "timeline") this._handleTimelineKey(e);
+    if (tab === "tracks") this._handleTracksKey(e);
+    else if (tab === "timeline") this._handleTimelineKey(e);
     else if (tab === "synth") this._handleSynthKey(e);
+    else if (tab === "presets") this._handlePresetsKey(e);
     else if (tab === "settings") this._handleSettingsKey(e);
   }
 
@@ -385,17 +394,61 @@ export class EditorModal {
 
   /** @param {KeyboardEvent} e */
   _handlePresetsKey(e) {
-    const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
+    const customPresets = /** @type {Record<string, any>} */ (
+      state.customPresets
+    );
     const presetNames = Object.keys(customPresets || {});
 
     if (this.creatingPreset) {
       const fields = [
-        { key: "name", label: "Name"},
-        { key: "oscType", label: "Oscillator Type", type: "choice", options: ["sine", "square", "sawtooth", "triangle", "fmsine", "fmsquare", "fmtriangle", "amsine"]},
-        { key: "attack", label: "Attack", type: "number", min: 0.001, max: 2, step: 0.01},
-        { key: "decay", label: "Decay", type: "number", min: 0.001, max: 2, step: 0.01 },
-        { key: "sustain", label: "Sustain", type: "number", min: 0, max: 1, step: 0.05 },
-        { key: "release", label: "Release", type: "number", min: 0.001, max: 5, step: 0.05},
+        { key: "name", label: "Name" },
+        {
+          key: "oscType",
+          label: "Oscillator Type",
+          type: "choice",
+          options: [
+            "sine",
+            "square",
+            "sawtooth",
+            "triangle",
+            "fmsine",
+            "fmsquare",
+            "fmtriangle",
+            "amsine",
+          ],
+        },
+        {
+          key: "attack",
+          label: "Attack",
+          type: "number",
+          min: 0.001,
+          max: 2,
+          step: 0.01,
+        },
+        {
+          key: "decay",
+          label: "Decay",
+          type: "number",
+          min: 0.001,
+          max: 2,
+          step: 0.01,
+        },
+        {
+          key: "sustain",
+          label: "Sustain",
+          type: "number",
+          min: 0,
+          max: 1,
+          step: 0.05,
+        },
+        {
+          key: "release",
+          label: "Release",
+          type: "number",
+          min: 0.001,
+          max: 5,
+          step: 0.05,
+        },
       ];
       const maxNav = fields.length + 1; // +1 for cancel
 
@@ -421,8 +474,139 @@ export class EditorModal {
       }
 
       const f = fields[this.presetsNavIndex];
-      
-    };
+
+      if (this.presetsNavIndex === 0) {
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          this.newPresetName = this.newPresetName.slice(0, -1);
+          this._renderPresets();
+          return;
+        }
+        if (/^[a-zA-Z0-9_\- ]$/.test(e.key) && e.key.length === 1) {
+          e.preventDefault();
+          this.newPresetName += e.key;
+          this._renderPresets();
+          return;
+        }
+      } else if (f?.type === "choice" && f.options) {
+        const val = this.newPresetsValue[f.key];
+        const idx = f.options.indexOf(val);
+        if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+          e.preventDefault();
+          this.newPresetsValue[f.key] =
+            f.options[(idx - 1 + f.options.length) % f.options.length];
+          this._renderPresets();
+          return;
+        }
+        if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+          e.preventDefault();
+          this.newPresetsValue[f.key] = f.options[(idx + 1) % f.options.length];
+          this._renderPresets();
+          return;
+        }
+      } else if (
+        f?.type === "number" &&
+        typeof f.min === "number" &&
+        typeof f.step === "number"
+      ) {
+        if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+          e.preventDefault();
+          this.newPresetsValue[f.key] = Math.max(
+            f.min,
+            +(this.newPresetsValue[f.key] - f.step).toFixed(3),
+          );
+          this._renderPresets();
+          return;
+        }
+        if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+          e.preventDefault();
+          this.newPresetsValue[f.key] = Math.min(
+            f.max,
+            +(this.newPresetsValue[f.key] + f.step).toFixed(3),
+          );
+          this._renderPresets();
+          return;
+        }
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (this.presetsNavIndex === maxNav - 1) {
+          this.creatingPreset = false;
+          this.presetsNavIndex = presetNames.length;
+          this._renderPresets();
+        } else if (this.presetsNavIndex === maxNav - 2) {
+          const name = this.newPresetName.trim() || "custom";
+          if (!state.customPresets) state.customPresets = {};
+          state.customPresets[name] = {
+            oscillator: { type: this.newPresetsValue.oscType },
+            envelope: {
+              attack: this.newPresetsValue.attack,
+              decay: this.newPresetsValue.decay,
+              sustain: this.newPresetsValue.sustain,
+              release: this.newPresetsValue.release,
+            },
+          };
+          this.creatingPreset = false;
+          this.presetsNavIndex = Object.keys(state.customPresets).length;
+          this._renderPresets();
+        }
+        return;
+      }
+      return;
+    }
+
+    const maxIdx = presetNames.length;
+    if (e.key === "ArrowUp" || e.key.toLowerCase === "w") {
+      e.preventDefault();
+      if (this.presetsNavIndex > 0) this.presetsNavIndex--;
+      this._renderPresets();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (this.presetsNavIndex < maxIdx) this.presetsNavIndex++;
+      this._renderPresets();
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (this.presetsNavIndex < presetNames.length) {
+        const name = presetNames[this.presetsNavIndex];
+        engine.setPreset(state.currentTrack, name);
+        this._updateTrackDisplay();
+        renderTimeline();
+        this._renderPresets();
+      } else {
+        this.creatingPreset = false;
+        this.presetsNavIndex = 0;
+        this.newPresetName = "Custom";
+        this.newPresetsValue = {
+          oscType: "sawtooth",
+          attack: 0.05,
+          decay: 0.3,
+          sustain: 0.5,
+          release: 1.0,
+        };
+        this._renderPresets();
+      }
+      return;
+    }
+
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      if (this.presetsNavIndex < presetNames.length) {
+        const name = presetNames[this.presetsNavIndex];
+        delete state.customPresets[name];
+        this.presetsNavIndex = Math.min(
+          this.presetsNavIndex,
+          Object.keys(state.customPresets).length,
+        );
+        this._renderPresets();
+      }
+      return;
+    }
   }
 
   /** @param {KeyboardEvent} e */
@@ -905,8 +1089,10 @@ export class EditorModal {
       el.classList.toggle("active", i === this.activeTab),
     );
     const tab = this._tabs[this.activeTab].id;
-    if (tab === "timeline") this._renderTimeline();
+    if (tab === "tracks") this._renderTracks();
+    else if (tab === "timeline") this._renderTimeline();
     else if (tab === "synth") this._renderSynth();
+    else if (tab === "presets") this._renderPresets();
     else if (tab === "settings") this._renderSettings();
   }
 
@@ -1172,17 +1358,54 @@ export class EditorModal {
 
       const nameSel = this.tracksNavIndex === 0 ? " selected" : "";
       html += `<div class="editor-row${nameSel}"><span>Name</span><span class="editor-row-value">${this.newTrackName}</span></div>`;
-      html += `<div class="editor-divider"></div>`
+      html += `<div class="editor-divider"></div>`;
 
       const presetSel = this.tracksNavIndex === 1 ? " selected" : "";
       html += `<div class="editor-row${presetSel}"><span>Preset</span><div class="choice-strip">`;
       presets.forEach((p) => {
         const active = p === this.newTrackPreset ? " active" : "";
-        html += `<div class="choice-item${active}"${p}></div>`;
+        html += `<div class="choice-item${active}">${p}</div>`;
       });
       html += `</div></div>`;
       html += `<div class="editor-divider"></div>`;
+
+      const createSel = this.tracksNavIndex === 2 ? " selected" : "";
+      html += `<div class="editor-row${createSel}"><span style="font-weight:600;color:var(--accent-text);">Create Track</span></div>`;
+      html += `<div class="editor-divider"></div>`;
+
+      const cancelSel = this.tracksNavIndex === 3 ? " selected" : "";
+      html += `<div class="editor-row${cancelSel}><span>Cancel</span></div>`;
+      html += `</div>`;
+      html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ change preset · Type name · Enter confirm · Esc cancel</div>`;
+      this.contentEl.innerHTML = html;
+      return;
     }
+
+    let html = `<div class="editor-panel-title">Tracks</div>`;
+    html += `<div class="editor-list">`
+
+    state.tracks.forEach((t, i) => {
+      const sel = i === this.tracksNavIndex ? " selected" : "";
+      const activeTrack = i === state.currentTrack ? " ●" : "";
+      const mutedBadge = t.muted ? `<span class="editor-row-badge" style="background:#ff4757;">MUTE</span>` : "";
+      html += `
+        <div class="editor-row${sel}">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span class="modal-dot" style="background:${t.color};"></span>
+                <span style="font-weight:500;">${t.name}${activeTrack}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <span class="editor-row-meta">${t.preset}</span>
+                ${mutedBadge}  
+            </div>
+        </div>`
+    });
+
+    const newSel = this.tracksNavIndex === state.tracks.length ? " selected" : "";
+    html += `<div class="editor-row${newSel}" style="color:var(--accent-text);font-weight:600;"><span>+ New Track</span></div>`;
+    html += `</div>`;
+    html += `<div class="editor-hint-row">↑/↓ navigate · Enter select/create · Del remove · W/S tabs</div>`;
+    this.contentEl.innerHTML = html;
   }
 
   _renderSynth() {
@@ -1191,7 +1414,7 @@ export class EditorModal {
 
     if (!track) {
       this.contentEl.innerHTML = `
-        <div class="editor-panel-title>Synths</div>
+        <div class="editor-panel-title">Synths</div>
         <div class="editor-empty">No active track. Create one in the Tracks tab.</div>
         <div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Enter toggle</div>
       `;
@@ -1385,6 +1608,133 @@ export class EditorModal {
 
     html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Enter toggle</div>`;
 
+    this.contentEl.innerHTML = html;
+  }
+
+  _renderPresets() {
+    if (!this.contentEl) return;
+    const customPresets = /** @type {Record<string, any>} */ (
+      state.customPresets
+    );
+    const presetNames = Object.keys(customPresets || {});
+
+    if (this.creatingPreset) {
+      const fields = [
+        { key: "name", label: "Name" },
+        {
+          key: "oscType",
+          label: "Oscillator Type",
+          type: "choice",
+          options: [
+            "sine",
+            "square",
+            "sawtooth",
+            "triangle",
+            "fmsine",
+            "fmsquare",
+            "fmtriangle",
+            "amsine",
+          ],
+        },
+        {
+          key: "attack",
+          label: "Attack",
+          type: "number",
+          min: 0.001,
+          max: 2,
+          step: 0.05,
+        },
+        {
+          key: "decay",
+          label: "Decay",
+          type: "number",
+          min: 0.001,
+          max: 2,
+          step: 0.05,
+          unit: "s",
+        },
+        {
+          key: "sustain",
+          label: "Sustain",
+          type: "number",
+          min: 0,
+          max: 1,
+          step: 0.05,
+        },
+        {
+          key: "release",
+          label: "Release",
+          type: "number",
+          min: 0.001,
+          max: 5,
+          step: 0.05,
+          unit: "s",
+        },
+      ];
+      const maxNav = fields.length + 1;
+
+      let html = `<div class="editor-panel-title">New Preset</div>`;
+      html += `<div class="editor-card">`;
+
+      fields.forEach((f, i) => {
+        const sel = this.presetsNavIndex === i ? " selected" : "";
+        let right = "";
+        if (f.key === "name") {
+          right = `<span class="editor-row-value">${this.newPresetName}</span>`;
+        } else if (f.type === "choice" && f.options) {
+          right = `<div class="choice-strip">`;
+          f.options.forEach((opt) => {
+            const active = opt === this.newPresetsValue[f.key] ? " active" : "";
+            const label = OSC_LABELS[opt] || opt;
+            right += `<div class="choice-item${active}">${label}</div>`;
+          });
+          right += `</div>`;
+        } else if (f.type === "number" && typeof f.min === "number") {
+          const val = this.newPresetsValue[f.key];
+          const pct = Math.min(
+            100,
+            Math.max(0, ((val - f.min) / (f.max - f.min)) * 100),
+          );
+          right = `
+            <div class="slider">
+                <div class="slider-track"><div class="slider-fill" style="width:${pct}%"></div></div>
+                <span class="slider-value">${val.toFixed(3)}${f.unit || ""}</span>  
+            </div>`;
+        }
+        html += `<div class="editor-row${sel}"><span>${f.label}</span>${right}</div>`;
+        if (i < fields.length - 1) html += `<div class="editor-divider"></div>`;
+      });
+
+      html += `<div class="editor-divider"></div>`;
+      const saveSel = this.presetsNavIndex === maxNav - 2 ? " selected" : "";
+      html += `<div class="editor-row${saveSel}" style="color:var(--accent-text);font-weight:600;"><span>Save Preset</span></div>`;
+      html += `<div class="editor-divider"></div>`;
+      const cancelSel = this.presetsNavIndex === maxNav - 1 ? " selected" : "";
+      html += `<div class="editor-row${cancelSel}"><span>Cancel</span></div>`;
+      html += `</div>`;
+      html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Type name · Enter save · Esc cancel</div>`;
+      this.contentEl.innerHTML = html;
+      return;
+    }
+
+    let html = `<div class="editor-panel-title">Presets</div>`;
+    html += `<div class="editor-list">`;
+    
+    presetNames.forEach((name, i) => {
+      const sel = i === this.presetsNavIndex ? " selected" : "";
+      const p = customPresets[name];
+      const osc = p?.oscillator?.type || "sine";
+      html += `
+        <div class="editor-row${sel}">
+            <span style="font-weight:500;">${name}</span>
+            <span class="editor-row-meta">${OSC_LABELS[osc] || osc}</span>
+        </div>`;
+    });
+
+    const newSel = this.presetsNavIndex === presetNames.length ? " selected" : "";
+    html += `<div class="editor-row${newSel}" style="color:var(--accent-text);font-weight:600;>+ New Preset</div>`;
+    html += `</div>`;
+    html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ adjust · Type name · Enter save · Esc cancel</div>`;
     this.contentEl.innerHTML = html;
   }
 
