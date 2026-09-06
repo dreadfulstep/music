@@ -205,13 +205,14 @@ body {
 
 .navbar {
   height: 52px;
+  margin: 12px 8px 0 8px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--border-radius);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 0 8px;
+  padding: 0 12px;
   gap: 16px;
   flex-shrink: 0;
 }
@@ -1297,4 +1298,14 @@ body,
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.transport-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
