@@ -177,7 +177,34 @@ export class EditorModal {
 
     this.tabEls = Array.from(nav?.querySelectorAll(".editor-tab"));
     this.contentEl = this.dialog.querySelector(".editor-content");
+    this.dialog.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      this._escape();
+    })
+    this.dialog.addEventListener("close", () => {
+      if (this.opened) this.close();
+    })
     document.body.appendChild(this.dialog);
+  }
+  
+  _escape() {
+    if (this.creatingTrack) {
+      this.creatingTrack = false;
+      this.tracksNavIndex = Math.max(0, state.tracks.length - 1);
+      this._renderTracks();
+      return;
+    }
+    if (this.creatingPreset) {
+      this.creatingPreset = false;
+      this.presetsNavIndex = Math.max(0, Object.keys(state.customPresets || {}).length - 1);
+      this._renderPresets();
+      return;
+    }
+    this.close();
+  }
+
+  refreshTheme() {
+    this._render();
   }
 
   _applySettings() {
@@ -199,6 +226,17 @@ export class EditorModal {
     this.selectedSettingIndex = 0;
     this.synthNavIndex = 0;
     this.customEnabled = false;
+
+    const themeField = this.settingsFields.find((f) => f.id === "theme");
+    let stored = null;
+    try {
+      stored = localStorage.getItem("midia.theme");
+    } catch {}
+    if (themeField && (stored === "light" || stored === "dark")) {
+      themeField.value = stored;
+      document.documentElement.setAttribute("data-theme", stored);
+    }
+
     this._loadCustomFromCurrent();
     this._render();
     this.dialog?.showModal();
@@ -240,8 +278,12 @@ export class EditorModal {
 
   /** @param {KeyboardEvent} e */
   _handleKey(e) {
-    if (e.key === "Escape" || e.key === "x" || e.key === "X") {
-      if (this.creatingTrack || this.creatingPreset) return; // let those handlers deal with it
+    if (e.key === "Escape") {
+      e.preventDefault();
+      this._escape();
+      return;
+    }
+    if (e.key.toLowerCase() === "x" && !this.creatingPreset && !this.creatingTrack) {
       e.preventDefault();
       this.close();
       return;
@@ -377,7 +419,7 @@ export class EditorModal {
       return;
     }
 
-    const maxIdx = state.tracks.length;
+    const maxIdx = Math.max(0, state.tracks.length - 1);
     if (e.key === "ArrowUp" || e.key.toLowerCase() === "w") {
       e.preventDefault();
       if (this.tracksNavIndex > 0) this.tracksNavIndex--;
@@ -388,6 +430,12 @@ export class EditorModal {
       e.preventDefault();
       if (this.tracksNavIndex < maxIdx) this.tracksNavIndex++;
       this._renderTracks();
+      return;
+    }
+
+    if (e.key.toLowerCase() === "n") {
+      e.preventDefault();
+      this.beginNewTrack();
       return;
     }
 
@@ -424,7 +472,6 @@ export class EditorModal {
         );
         this._updateTrackDisplay();
         this._renderTracks();
-        this._renderTimeline();
       }
       return;
     }
@@ -1174,7 +1221,7 @@ export class EditorModal {
     const borderStrong = this._css("--border-strong", "rgba(128,128,128,0.3)");
     const fgTertiary = this._css("--foreground-tertiary", "#777");
     const fg = this._css("--foreground", "#fff");
-    const ink = this._css("--background", "#000");
+    const ink = "#111";
 
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, contentW, viewH);
@@ -1290,6 +1337,13 @@ export class EditorModal {
   _renderTimeline() {
     if (!this.contentEl) return;
     const track = state.tracks[state.currentTrack];
+    if (!track) {
+      this.contentEl.innerHTML = `
+      <div class="editor-panel-title">Timeline</div>
+      <div class="editor-empty">No active track — create one in the Tracks tab.</div>
+      <div class="editor-hint-row">W/S tabs</div>`;
+      return;
+    }
     const notes = track?.notes || [];
     let html = `<div class="editor-panel-header"><h2>${track?.name || "Track"}</h2><span class="editor-panel-meta">${notes.length} notes</span></div>`;
     html += `<div class="editor-timeline-scroll">`;
@@ -1335,11 +1389,11 @@ export class EditorModal {
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const white = this._css("--surface-raised", "#e8e8ec");
-    const black = this._css("--tertiary", "#2a2a32");
-    const line = this._css("--border-strong", "rgba(128,128,128,0.3)");
-    const fgOnWhite = this._css("--foreground", "#111");
-    const fgOnBlack = this._css("--foreground-secondary", "#ccc");
+    const white = "#f4f4f7";
+    const black = "#17171d";
+    const line = "rgba(0,0,0,0.25)";
+    const fgOnWhite = "#4a4a52";
+    const fgOnBlack = "#9a9aa5";
 
     const semitones = 25;
     const rowH = h / semitones;
@@ -1423,8 +1477,15 @@ export class EditorModal {
       return;
     }
 
-    let html = `<div class="editor-panel-title">Tracks</div>`;
+    let html = `<div class="editor-panel-header">
+      <h2>Tracks</h2>
+      <div class="editor-action-btn"><i data-lucide="plus"></i> New Track <kbd>N</kbd></div>
+    </div>`;
     html += `<div class="editor-list">`;
+
+    if (state.tracks.length === 0) {
+      html += `<div class="editor-empty">No tracks yet — press <strong>N</strong> to create one.</div>`;
+    }
 
     state.tracks.forEach((t, i) => {
       const sel = i === this.tracksNavIndex ? " selected" : "";
@@ -1445,12 +1506,12 @@ export class EditorModal {
         </div>`;
     });
 
-    const newSel =
-      this.tracksNavIndex === state.tracks.length ? " selected" : "";
-    html += `<div class="editor-row${newSel}" style="color:var(--accent-text);font-weight:600;"><span>+ New Track</span></div>`;
     html += `</div>`;
     html += `<div class="editor-hint-row">↑/↓ navigate · Enter select/create · Del remove · W/S tabs</div>`;
     this.contentEl.innerHTML = html;
+
+    // @ts-ignore
+    if (window.lucide) lucide.createIcons();
   }
 
   _renderSynth() {
@@ -1617,7 +1678,7 @@ export class EditorModal {
 
         if (isToggle) {
           const on = f.value === (f.id === "theme" ? "dark" : "on");
-          right = `<span class="badge">${on ? (f.id === "theme" ? "Dark" : "On") : f.id === "theme" ? "Light" : "Off"}</span>`;
+          right = `<span>${on ? (f.id === "theme" ? "Dark" : "On") : f.id === "theme" ? "Light" : "Off"}</span>`;
         } else if (
           f.type === "number" &&
           typeof f.value === "number" &&

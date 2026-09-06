@@ -130,7 +130,8 @@ export function renderTimeline() {
   state.tracks.forEach((t) => {
     t.notes.forEach((n) => (maxBeat = Math.max(maxBeat, n.start + n.duration)));
   });
-  const timelineWidth = Math.max(800, maxBeat * PIXELS_PER_BEAT);
+  const avail = timeline.clientWidth > 0 ? timeline.clientWidth - (HEADER_W + PIANO_W) : 0;
+  const timelineWidth = Math.max(800, maxBeat * PIXELS_PER_BEAT, avail);
   const totalWidth = HEADER_W + PIANO_W + timelineWidth;
 
   const rulerWrap = document.createElement("div");
@@ -209,7 +210,7 @@ export function renderTimeline() {
     if (pCtx) {
       pCtx.setTransform(pdpr, 0, 0, pdpr, 0, 0);
       const rowH = LANE_HEIGHT / SEMITONES;
-      pCtx.fillStyle = css("--surface", "#1a1a1a");
+      pCtx.fillStyle = "#f2f2f5";
       pCtx.fillRect(0, 0, PIANO_W, LANE_HEIGHT);
       for (let i = 0; i < SEMITONES; i++) {
         const y = i * rowH;
@@ -217,14 +218,10 @@ export function renderTimeline() {
         const isSharp =
           ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
         if (isSharp) {
-          pCtx.fillStyle = css("--tertiary", "#222");
+          pCtx.fillStyle = "#17171d";
           pCtx.fillRect(0, y, PIANO_W, rowH);
         }
-        if (ni === 0) {
-          pCtx.fillStyle = css("--foreground-tertiary", "#666");
-          pCtx.fillText("C" + (Math.floor(i / 12) + 3), 4, y + rowH - 8);
-        }
-        pCtx.strokeStyle = css("--border", "rgba(128,128,128,0.15)");
+        pCtx.strokeStyle = "rgba(0,0,0,0.18)";
         pCtx.beginPath();
         pCtx.moveTo(0, y);
         pCtx.lineTo(PIANO_W, y);
@@ -236,6 +233,8 @@ export function renderTimeline() {
     wrap.className = "track-lane-roll";
 
     wrap.style.width = timelineWidth + "px";
+    wrap.style.minWidth = timelineWidth + "px";
+    wrap.style.flex = "1 0 auto";
 
     const canvas = document.createElement("canvas");
     const cpdr = dpr();

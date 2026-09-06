@@ -11,6 +11,17 @@ const playhead = document.getElementById("playhead");
 let countdownInterval = null;
 let lastNoteCount = -1;
 
+const THEME_KEY = "midia.theme";
+
+(function applyTheme() {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    if (t === "light" || t === "dark") {
+      document.documentElement.setAttribute("data-theme", t);
+    }
+  } catch {}
+})();
+
 // @ts-ignore
 if (window.lucide) lucide.createIcons();
 
@@ -61,11 +72,23 @@ function updateTransportButtons() {
   const stopBtn = document.querySelector('[data-action="stop"]');
   const recBtn = document.querySelector('[data-action="record"]');
   if (playBtn) playBtn.classList.toggle("active", state.isPlaying);
-  if (stopBtn) stopBtn.classList.toggle("active", !state.isPlaying);
+  if (stopBtn) stopBtn.classList.remove("active");
   if (recBtn) {
     recBtn.classList.remove("active", "counting");
     if (state.isRecording) recBtn.classList.add("active");
     else if (state.isCountingIn) recBtn.classList.add("counting");
+  }
+  const stateEl = document.getElementById("play-state");
+  if (stateEl) {
+    stateEl.textContent = state.isRecording
+      ? "Recording"
+      : state.isCountingIn
+        ? "Count-in"
+        : state.isPlaying
+          ? "Playing"
+          : "Stopped";
+    stateEl.classList.toggle("active", state.isPlaying && !state.isRecording);
+    stateEl.classList.toggle("recording", state.isRecording);
   }
 }
 
@@ -79,12 +102,30 @@ function clearCountdown() {
 }
 
 function stopAll() {
+  input.flushPendingNotes();
   engine.stopTransport();
   state.isRecording = false;
   state.isCountingIn = false;
   state.isPlaying = false;
   clearCountdown();
   updateTransportButtons();
+  renderTimeline();
+}
+
+function toggleRecord() {
+  if (state.isRecording || state.isCountingIn) stopAll();
+  else startCountdown();
+}
+
+function togglePlay() {
+  if (state.isPlaying) {
+    stopAll();
+  } else {
+    stopAll();
+    engine.startTransport();
+    updatePlayhead();
+    updateTransportButtons();
+  }
 }
 
 function startCountdown() {
@@ -130,23 +171,34 @@ function startCountdown() {
   }, 1000);
 }
 
+function watchTheme() {
+  const root = document.documentElement;
+  new MutationObserver(() => {
+    const t = root.getAttribute("data-theme") === "light" ? "light" : "dark";
+    try {
+      localStorage.setItem(THEME_KEY, t);
+    } catch {}
+    renderTimeline();
+    if (editorModal.isOpen()) editorModal.refreshTheme();
+  }).observe(root, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+}
+
+/** @type {any} */
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    renderTimeline();
+  }, 150);
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
   projectManager.show();
 
-  input.onKey(
-    " ",
-    () => {
-      if (state.isPlaying) {
-        stopAll();
-      } else {
-        stopAll(); // clear all
-        engine.startTransport();
-        updatePlayhead();
-        updateTransportButtons();
-      }
-    },
-    { preventDefault: true },
-  );
+  input.onKey(" ", togglePlay, { preventDefault: true });
 
   input.onCombo("shift", "1", () => {
     if (editorModal.isOpen()) return;
@@ -175,13 +227,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Record
-  input.onCombo("shift", "r", () => {
-    if (state.isRecording) {
-      stopAll();
-    } else {
-      startCountdown();
-    }
-  });
+  input.onCombo("shift", "r", toggleRecord);
 
   // BPM
   input.onCombo("shift", "<", () => input._startBpm(-1, input.lastComboCode));
@@ -247,4 +293,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   input.onCombo("shift", "o", () => engine.exportTrack(state.currentTrack));
 
   renderTimeline();
+  watchTheme();
 });

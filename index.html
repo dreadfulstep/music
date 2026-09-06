@@ -58,15 +58,11 @@
             </div>
             <div class="shortcut">
               <span>Scroll time</span>
-              <span class="kbd-pair">
-                <kbd>⇧ ←</kbd> <kbd>⇧ →</kbd>
-              </span>
+              <span class="kbd-pair"> <kbd>⇧ ←</kbd> <kbd>⇧ →</kbd> </span>
             </div>
             <div class="shortcut">
               <span>Scroll lanes</span>
-              <span class="kbd-pair">
-                <kbd>⇧ ↑</kbd> <kbd>⇧ ↓</kbd>
-              </span>
+              <span class="kbd-pair"> <kbd>⇧ ↑</kbd> <kbd>⇧ ↓</kbd> </span>
             </div>
             <div class="shortcut"><span>Export JSON</span> <kbd>⇧ P</kbd></div>
             <div class="shortcut"><span>Export WAV</span> <kbd>^ ⇧ E</kbd></div>
@@ -77,19 +73,38 @@
 
       <div class="main">
         <nav class="navbar">
-          <div class="nav-group">
-            <button class="nav-btn" data-action="play" tabindex="-1">
+          <div class="transport-pill">
+            <button
+              class="nav-btn"
+              data-action="play"
+              title="Play (Space)"
+              tabindex="-1"
+            >
               <i data-lucide="play"></i>
             </button>
-            <button class="nav-btn" data-action="record" tabindex="-1">
-              <i data-lucide="square"></i>
+            <button
+              class="nav-btn"
+              data-action="stop"
+              title="Stop (Space)"
+              tabindex="-1"
+            >
+              <i data-lucide="circle"></i>
+            </button>
+            <button
+              class="nav-btn"
+              data-action="record"
+              title="Record (Shift+R)"
+              tabindex="-1"
+            >
+              <i data-lucide="circle"></i>
             </button>
           </div>
-          <div class="nav-group">
-            <span class="nav-readout"
-              ><strong id="bpm-display">128</strong> BPM</span
-            >
-            <span class="nav-readout" id="time-display">01:00:00</span>
+          <div class="nav-readouts">
+            <span class="nav-readout" id="time-display">00:00:00</span>
+            <span class="nav-sep"></span>
+            <span class="nav-readout"><strong id="bpm-display">128</strong> BPM</span>
+            <span class="nav-sep"></span>
+            <span class="nav-readout nav-state" id="play-state">Stopped</span>
           </div>
         </nav>
 
@@ -98,7 +113,7 @@
             <span class="countdown-number">3</span>
           </div>
           <div class="timeline" id="timeline">
-            <div class="playhead" id="playhead" style="left: 164px"></div>
+            <div class="playhead" id="playhead" style="left: 164px;"></div>
           </div>
           <div id="keys"></div>
         </div>
@@ -114,7 +129,7 @@
             >
           </div>
           <div class="status-right">
-            <span class="status-item" id="play-state">Stopped</span>
+            <span class="status-item">SPACE play · ⇧R record · ⇧E editor</span>
           </div>
         </div>
       </div>

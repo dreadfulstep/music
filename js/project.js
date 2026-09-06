@@ -238,6 +238,19 @@ class ProjectManager {
     return n;
   }
 
+  _defaultTrack() {
+    return {
+        id: 0,
+        name: "Lead",
+        color: "#4ecdc4",
+        type: "synth",
+        preset: "pluck",
+        muted: false,
+        loop: false,
+        notes: [],
+    };
+  }
+
   /** @param {string} name */
   _fresh(name) {
     return {
@@ -245,7 +258,7 @@ class ProjectManager {
       name,
       bpm: 128,
       customPresets: {},
-      tracks: [],
+      tracks: [this._defaultTrack()],
     };
   }
 
@@ -289,6 +302,7 @@ class ProjectManager {
   /** @param {any} data @param {string} name */
   _apply(data, name) {
     const clean = this._sanitize(data, name);
+    if (!clean.tracks.length) clean.tracks = [this._defaultTrack()];
     state.bpm = clean.bpm;
     state.tracks = clean.tracks;
     state.customPresets = clean.customPresets;
