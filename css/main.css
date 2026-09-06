@@ -1309,3 +1309,73 @@ body,
   border: 1px solid var(--border);
   border-radius: 12px;
 }
+
+.mobile-block {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--background) 88%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  pointer-events: auto;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+}
+
+.mobile-block-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 340px;
+  padding: 36px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--border-radius);
+  box-shadow: 0 24px 80px color-mix(in oklch, black 45%, transparent);
+  animation: modal-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mobile-block-icon {
+  width: 34px;
+  height: 34px;
+  color: var(--accent-text);
+  stroke-width: 1.75;
+}
+
+.mobile-block-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.mobile-block-text {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--foreground-secondary);
+}
+
+.mobile-block-hint {
+  font-size: 0.78rem;
+  color: var(--foreground-tertiary);
+}
+
+.mobile-block-meta {
+  margin-top: 4px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--foreground-tertiary);
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}

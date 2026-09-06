@@ -10,6 +10,19 @@
     <link rel="stylesheet" href="css/main.css" />
   </head>
   <body>
+    <div class="mobile-block" id="mobile-block">
+      <div class="mobile-block-card">
+        <i data-lucide="monitor-smartphone" class="mobile-block-icon"></i>
+        <h1 class="mobile-block-title">Midia</h1>
+        <p class="mobile-block-text">
+          Midia isn't available on mobile — the sequencer, keyboard and audio
+          engien need a desktop browser.
+        </p>
+        <p class="mobile-block-hint">Pplease open this project on a desktop or laptop.</p>
+        <span class="mobile-block-meta">midia · desktop only</span>
+      </div>
+    </div>
+
     <div id="start-overlay">
       <div class="modal project-modal" id="project-modal"></div>
     </div>
@@ -102,7 +115,9 @@
           <div class="nav-readouts">
             <span class="nav-readout" id="time-display">00:00:00</span>
             <span class="nav-sep"></span>
-            <span class="nav-readout"><strong id="bpm-display">128</strong> BPM</span>
+            <span class="nav-readout"
+              ><strong id="bpm-display">128</strong> BPM</span
+            >
             <span class="nav-sep"></span>
             <span class="nav-readout nav-state" id="play-state">Stopped</span>
           </div>
@@ -113,7 +128,7 @@
             <span class="countdown-number">3</span>
           </div>
           <div class="timeline" id="timeline">
-            <div class="playhead" id="playhead" style="left: 164px;"></div>
+            <div class="playhead" id="playhead" style="left: 164px"></div>
           </div>
           <div id="keys"></div>
         </div>

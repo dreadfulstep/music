@@ -25,6 +25,23 @@ const THEME_KEY = "midia.theme";
 // @ts-ignore
 if (window.lucide) lucide.createIcons();
 
+const isTouchDevice = () => window.matchMedia("(hover: none) and (pointer: coarse").matches;
+
+function showMobileBlock() {
+  const el = document.getElementById("mobile-block");
+  if (!el || el.style.display === "flex") return;
+  el.style.display = "flex";
+  document.title = "Midia — Desktop only";
+  try {
+    engine.stopTransport();
+  } catch {}
+}
+
+const touchMq = window.matchMedia("(hover: none) and (pointer: coarse)");
+const onTouchChange = (/** @type {{ matches: any; }} */ e) => e.matches && showMobileBlock();
+if (touchMq.addEventListener) touchMq.addEventListener("change", onTouchChange);
+else if (touchMq.addListener) touchMq.addListener(onTouchChange);
+
 function updatePlayhead() {
   if (!state.isPlaying || !timeline || !playhead) return;
 
@@ -198,6 +215,11 @@ window.addEventListener("resize", () => {
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (isTouchDevice()) {
+    showMobileBlock();
+    return;
+  }
+
   projectManager.show();
 
   input.onKey(" ", togglePlay, { preventDefault: true });
