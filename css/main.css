@@ -93,14 +93,6 @@ body {
   justify-content: center;
 }
 
-#start-overlay .modal {
-  background: var(--secondary);
-  border: 2px solid var(--border);
-  border-radius: var(--border-radius);
-  padding: 48px 64px;
-  text-align: center;
-}
-
 .app {
   display: flex;
   height: 100vh;
@@ -448,18 +440,13 @@ body {
 }
 
 .modal-row {
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: var(--foreground-secondary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: background 0.08s;
+  border: 1px solid transparent;
+  border-radius: 10px;
 }
 
 .modal-row.selected {
-  background-color: color-mix(in oklch, var(--accent) 30%, transparent);
+  background-color: color-mix(in oklch, var(--accent) 10%, transparent);
+  border-color: color-mix(in oklch, var(--acent) 29%, transparent);
   color: var(--foreground);
 }
 
@@ -490,6 +477,7 @@ body {
   overflow-y: auto;
   position: relative;
   display: flex;
+  background: var(--background);
   flex-direction: column;
   gap: 2px;
 }
@@ -498,16 +486,18 @@ body {
   display: flex;
   height: 125px;
   min-width: max-content;
+  border-bottom: 1px solid var(--border);
 }
 
 .track-lane.active {
-  background: var(--surface-hover);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
 }
 
 .track-lane-header {
   width: 120px;
   flex-shrink: 0;
   background: var(--surface);
+  box-shadow: 12px 0 16px -12px rgba(0, 0, 0, 0.55);
   border-right: 1px solid var(--border-strong);
   display: flex;
   align-items: center;
@@ -723,7 +713,10 @@ dialog.editor-modal {
   color: var(--foreground-secondary);
   border: 1px solid transparent;
   flex-shrink: 0;
-  transition: background 0.08s, border-color 0.08s, color 0.08s;
+  transition:
+    background 0.08s,
+    border-color 0.08s,
+    color 0.08s;
   position: relative;
 }
 
@@ -823,7 +816,7 @@ dialog.editor-modal {
   border-bottom: 1px solid var(--border-strong);
   position: sticky;
   top: 0;
-  z-index: 6;
+  z-index: 7;
   display: flex;
   align-items: center;
   font-family: ui-monospace, "SF Mono", monospace;
@@ -831,6 +824,7 @@ dialog.editor-modal {
   color: var(--foreground-tertiary);
   pointer-events: none;
   flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--border-strong);
 }
 
 .time-ruler-mark {
@@ -1051,7 +1045,9 @@ body,
   opacity: 0.32;
   filter: grayscale(0.6);
   pointer-events: none;
-  transition: opacity 0.25s ease, filter 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    filter 0.25s ease;
 }
 
 .editor-card .editor-row {
@@ -1090,7 +1086,9 @@ body,
   background: var(--tertiary);
   border-radius: 12px;
   border: 1px solid var(--border-strong);
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .toggle[data-on="true"] .toggle-track {
@@ -1106,11 +1104,93 @@ body,
   height: 18px;
   background: var(--foreground);
   border-radius: 50%;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .toggle[data-on="true"] .toggle-thumb {
   transform: translateX(20px);
   background: var(--background);
+}
+
+.project-modal {
+  width: 480px;
+  max-height: 460px;
+  padding: 0;
+  text-align: left;
+}
+
+.project-body {
+  max-height: 300px;
+  flex: 1;
+  gap: 0;
+  padding: 10px 12px;
+}
+
+.project-hint {
+  padding: 12px 20px;
+  font-size: 11px;
+  color: var(--foreground-tertiary);
+  font-family: ui-monospace, "SF Mono", monospace;
+  border-top: 1px solid var(--border);
+}
+
+.project-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--foreground-tertiary);
+}
+
+.modal-row.selected .project-icon {
+  color: var(--accent-text);
+}
+
+.project-action {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.project-badge {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--accent-muted);
+  color: var(--accent-text);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-weight: 700;
+}
+
+.project-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--foreground-tertiary);
+  font-size: 0.85rem;
+  line-height: 2.2;
+}
+
+.project-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.project-hint kbd,
+.project-empty kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--tertiary);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-family: ui-monosapce, monospace;
+  font-size: 0.65rem;
+  color: var(--foreground);
 }

@@ -20,6 +20,11 @@ const NOTE_NAMES = [
   "B",
 ];
 
+/** @param {string} name @param {string} fb */
+const css = (name, fb) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
+  fb;
+
 /**
  *
  * @param {CanvasRenderingContext2D} ctx
@@ -90,8 +95,8 @@ export function renderTimeline() {
 
   const rulerCtx = rulerCanvas.getContext("2d");
   if (rulerCtx) {
-    const dpr = window.devicePixelRatio || 1;
-    rulerCtx.scale(dpr, dpr);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    rulerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const bpm = state.bpm;
     const secondsPerbeat = 60 / bpm;
     rulerCtx.clearRect(0, 0, 120 + 44 + timelineWidth, 24);
@@ -155,14 +160,11 @@ export function renderTimeline() {
 
     const pCtx = pianoCanvas.getContext("2d");
     if (pCtx) {
-      const dpr = window.devicePixelRatio || 1;
-      pCtx.scale(dpr, dpr);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      pCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const rowH = LANE_HEIGHT / SEMITONES;
       pCtx.clearRect(0, 0, 44, LANE_HEIGHT);
-      pCtx.fillStyle =
-        getComputedStyle(document.documentElement)
-          .getPropertyValue("--surface")
-          .trim() || "#1a1a1a";
+      pCtx.fillStyle = css("--surface", "#1a1a1a");
       pCtx.fillRect(0, 0, 44, LANE_HEIGHT);
       for (let i = 0; i < SEMITONES; i++) {
         const y = i * rowH;
@@ -170,18 +172,14 @@ export function renderTimeline() {
         const isSharp =
           ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
         if (isSharp) {
-          pCtx.fillStyle = "rgba(0,0,0,0.35)";
+          pCtx.fillStyle = css("--tertiary", "#222");
           pCtx.fillRect(0, y, 44, rowH);
         }
         if (ni === 0) {
-          pCtx.fillStyle =
-            getComputedStyle(document.documentElement)
-              .getPropertyValue("--foreground-tertiary")
-              .trim() || "#666";
-          pCtx.font = "9px ui-monospace, monospace";
+          pCtx.fillStyle = css("--foreground-tertiary", "#666");
           pCtx.fillText("C" + (Math.floor(i / 12) + 3), 4, y + rowH - 4);
         }
-        pCtx.strokeStyle = "rgba(255,255,255,0.04)";
+        pCtx.strokeStyle = css("--border", "rgba(128,128,128,0.15)");
         pCtx.beginPath();
         pCtx.moveTo(0, y);
         pCtx.lineTo(44, y);
@@ -220,14 +218,14 @@ export function renderTimeline() {
         const ni = i % 12;
         const isSharp =
           ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
-        ctx.strokeStyle = isSharp
-          ? "rgba(255,255,255,0.06)"
-          : "rgba(255,255,255,0.03)";
+        ctx.globalAlpha = isSharp ? 0.7 : 0.35;
+        ctx.strokeStyle = css("--border", "rgba(128,128,128,0.15)");
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(timelineWidth, y);
         ctx.stroke();
       }
+      ctx.globalAlpha = 1;
 
       for (let i = 0; i <= maxBeat; i++) {
         const x = i * PIXELS_PER_BEAT;
@@ -251,7 +249,15 @@ export function renderTimeline() {
         if (buffer) {
           const durBeats = track.duration || buffer.duration * (state.bpm / 60);
           const drawW = durBeats * PIXELS_PER_BEAT;
-          drawWaveform(ctx, buffer, 0, 0, Math.min(drawW, timelineWidth), LANE_HEIGHT, track.color);
+          drawWaveform(
+            ctx,
+            buffer,
+            0,
+            0,
+            Math.min(drawW, timelineWidth),
+            LANE_HEIGHT,
+            track.color,
+          );
         }
         if (track.loop) {
           ctx.fillStyle = track.color;
@@ -289,7 +295,7 @@ export function renderTimeline() {
 
           // Pitch label if fwide enough
           if (w > 30) {
-            ctx.fillStyle = "#0000";
+            ctx.fillStyle = css("--background", "#000");
             ctx.font = "bold 9px ui-monospace, monospace";
             ctx.textBaseline = "middle";
             ctx.fillText(note.pitch, x + 4, y + h / 2);

@@ -1110,7 +1110,9 @@ export class EditorModal {
   }
 
   _applyCustom() {
-    const synth = engine.synths.get(state.currentTrack);
+    const track = state.tracks[state.currentTrack];
+    if (!track) return;
+    const synth = engine.synths.get(track.id);
     if (!synth) return;
     synth.set({
       oscillator: { type: this.customValues.oscType },
@@ -1413,7 +1415,7 @@ export class EditorModal {
       html += `<div class="editor-divider"></div>`;
 
       const cancelSel = this.tracksNavIndex === 3 ? " selected" : "";
-      html += `<div class="editor-row${cancelSel}><span>Cancel</span></div>`;
+      html += `<div class="editor-row${cancelSel}"><span>Cancel</span></div>`;
       html += `</div>`;
       html += `<div class="editor-hint-row">↑/↓ navigate · ←/→ change preset · Type name · Enter confirm · Esc cancel</div>`;
       this.contentEl.innerHTML = html;

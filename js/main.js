@@ -4,6 +4,7 @@ import { engine } from "./audio/engine.js";
 import { modal } from "./ui/modal.js";
 import { renderTimeline } from "./timeline.js";
 import { editorModal } from "./ui/editor.js";
+import { projectManager } from "./project.js";
 
 const timeline = document.getElementById("timeline");
 const playhead = document.getElementById("playhead");
@@ -32,9 +33,15 @@ function updatePlayhead() {
   const timeEl = document.querySelector(".nav-readout:nth-child(2)");
   if (timeEl) {
     const s = Tone.Transport.seconds;
-    const mm = Math.floor(s / 60).toString().padStart(2, "0");
-    const ss = Math.floor(s%60).toString().padStart(2, "0");
-    const ms = Math.floor((s % 1) * 100).toString().padStart(2, "0");
+    const mm = Math.floor(s / 60)
+      .toString()
+      .padStart(2, "0");
+    const ss = Math.floor(s % 60)
+      .toString()
+      .padStart(2, "0");
+    const ms = Math.floor((s % 1) * 100)
+      .toString()
+      .padStart(2, "0");
     timeEl.textContent = `${mm}:${ss}:${ms}`;
   }
 
@@ -98,6 +105,8 @@ function startCountdown() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  projectManager.show();
+
   input.onKey(
     " ",
     () => {
@@ -175,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   fileInput.accept = "audio/*";
   fileInput.style.display = "none";
   document.body.append(fileInput);
-  fileInput.addEventListener("change", async(e) => {
+  fileInput.addEventListener("change", async (e) => {
     const target = /** @type {HTMLInputElement} */ (e.target);
     const file = target.files?.[0];
     if (file) {
@@ -204,9 +213,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   input.onCombo("shift", "l", () => {
     engine.toggleTrackLoop(state.currentTrack);
     renderTimeline();
-  })
+  });
 
-  input.onCombo("shift", "p", () => engine.exportProject());
+  input.onCombo("shift", "p", () => projectManager.exportJSON());
+  input.onCombo(["ctrl", "shift"], "p", () => engine.exportProject());
   input.onCombo("shift", "o", () => engine.exportTrack(state.currentTrack));
 
   renderTimeline();

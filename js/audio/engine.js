@@ -117,41 +117,47 @@ class SynthEngine {
   }
 
   /**
-   * @param {any} note
+   * @param {string} note
+   * @param {number|null} [trackIdx]
    */
-  playNote(note, trackId = null) {
-    const tid = trackId ?? state.currentTrack;
-    const key = `${tid}-${note}`;
+  playNote(note, trackIdx = null) {
+    const track = trackIdx === null ? state.tracks[state.currentTrack] : state.tracks[trackIdx];
+    if (!track) return;
+    const key = `${track.id}-${note}`;
     if (this.playingNotes.has(key)) return; // already sounding
-    const synth = this.synths.get(tid);
-    if (!synth || state.tracks[tid].muted) return;
+    const synth = this.synths.get(track.id);
+    if (!synth || track.muted) return;
     this.playingNotes.set(key, true);
     synth.triggerAttack(note);
   }
 
   /**
-   * @param {any} note
+   * @param {string} note
+   * @param {number|null} [trackIdx]
    */
-  stopNote(note, trackId = null) {
-    const tid = trackId ?? state.currentTrack;
-    const key = `${tid}-${note}`;
-    const synth = this.synths.get(tid);
+  stopNote(note, trackIdx = null) {
+    const track = trackIdx === null ? state.tracks[state.currentTrack] : state.tracks[trackIdx];
+    if (!track) return;
+    const key = `${track.id}-${note}`;
+    const synth = this.synths.get(track.id);
     if (!synth) return;
     this.playingNotes.delete(key);
     synth.triggerRelease(note);
   }
 
   /**
-   * @param {number} trackId
+   * @param {number} trackIdx
    * @param {string} presetName
    */
-  setPreset(trackId, presetName) {
-    const synth = this.synths.get(trackId);
+  setPreset(trackIdx, presetName) {
+    const track = state.tracks[trackIdx];
+    if (!track || track.type === "audio") return;
     const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
     const preset = customPresets?.[presetName] || this.presets[presetName];
-    if (!synth || !preset) return;
-    synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
-    state.tracks[trackId].preset = presetName;
+    if (!preset) return;
+    const synth = this.synths.get(track.id);
+    if (synth) synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
+    track.preset = presetName;
   }
 
   /**
@@ -247,7 +253,7 @@ class SynthEngine {
   /** @param {File} file */
   async uploadAudioFile(file) {
     const url = URL.createObjectURL(file);
-    const id = state.tracks.length;
+    const id = state.tracks.length ? Math.max(...state.tracks.map((t) => t.id)) + 1 : 0;
     const track = {
       id,
       name: file.name.replace(/\.[^/.]+$/, ""),
@@ -331,9 +337,10 @@ class SynthEngine {
     return this._exportTracks(ids, "project.wav");
   }
 
-  /** @param {string | number} trackId */
-  async exportTrack(trackId) {
-    return this._exportTracks([trackId], `track-${trackId}.wav`);
+  /** @param {number} trackIdx */
+  async exportTrack(trackIdx) {
+    const track = state.tracks[trackIdx];
+    if (track) return this._exportTracks([track.id], `track-${track.id}.wav`);
   }
 
   /**
@@ -474,12 +481,13 @@ class SynthEngine {
     return new Blob([buffer], { type: "audio/wav" });
   }
 
-  /** @param {string | number} trackId */
-  toggleTrackLoop(trackId) {
-    const track = state.tracks[/** @type {number} */ (trackId)];
-    if (track) track.loop = !track.loop;
-    const player = this.audioPlayers.get(trackId);
-    if (player) player.loop = !!track.loop;
+  /** @param {number} trackIdx */
+  toggleTrackLoop(trackIdx) {
+    const track = state.tracks[trackIdx];
+    if (!track) return;
+    track.loop = !track.loop;
+    const player = this.audioPlayers.get(track.id);
+    if (player) player.loop = track.loop;
   }
 }
 

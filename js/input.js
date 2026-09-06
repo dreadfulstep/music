@@ -3,6 +3,7 @@ import { engine } from "./audio/engine.js";
 import { modal } from "./ui/modal.js";
 import { renderTimeline } from "./timeline.js";
 import { editorModal } from "./ui/editor.js";
+import { projectManager } from "./project.js";
 
 class InputManager {
   constructor() {
@@ -214,7 +215,7 @@ class InputManager {
         return;
       }
 
-      if (modal.isOpen() || editorModal.isOpen()) return;
+      if (modal.isOpen() || editorModal.isOpen() || projectManager.isOpen()) return;
 
       if (e.repeat) return;
       if (!this.audioReady && e.key !== "Tab") {
@@ -257,6 +258,7 @@ class InputManager {
           this.pendingNotes.set(`${state.currentTrack}-${note}`, {
             pitch: note,
             start: beat,
+            trackIdx: state.currentTrack
           });
         }
       }
@@ -276,10 +278,11 @@ class InputManager {
         this._highlight(key, false);
         const keyRef = `${state.currentTrack}-${note}`;
         const pending = this.pendingNotes.get(keyRef);
-        if (pending && state.isRecording && !state.isCountingIn) {
+        if (pending && state.isRecording && state.isPlaying && !state.isCountingIn) {
           const endBeat = Tone.Transport.seconds / (60 / state.bpm);
           pending.duration = Math.max(0.01, endBeat - pending.start); // min 1/16 note
-          state.tracks[state.currentTrack].notes.push(pending);
+          const target = state.tracks[pending.trackIdx];
+          if (target) target.notes.push(pending);
           this.pendingNotes.delete(keyRef);
           renderTimeline();
         }
