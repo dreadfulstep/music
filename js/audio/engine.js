@@ -52,14 +52,19 @@ class SynthEngine {
 
     Tone.context.lookAhead = 0.1;
 
-    this.limiter = new Tone.Limiter(-1).toDestination();
-    this.compressor = new Tone.Compressor(-20, 2.5).connect(this.limiter);
-    this.master = new Tone.Gain(0.45).connect(this.limiter);
-    this.reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 }).connect(
+    this.limiter = new Tone.Limiter(-2).toDestination();
+    this.compressor = new Tone.Compressor({
+      threshold: -18,
+      ratio: 2.5,
+      attack: 0.01,
+      release: 0.25,
+    }).connect(this.limiter);
+    this.master = new Tone.Gain(0.4).connect(this.limiter);
+    this.reverb = new Tone.Reverb({ decay: 2.5, wet: 0.18 }).connect(
       this.master,
     );
-    this.delay = new Tone.FeedbackDelay("8n", 0.12).connect(this.reverb);
-    this.toneFilter = new Tone.Filter(8000, "lowpass").connect(this.delay);
+    this.delay = new Tone.FeedbackDelay("8n", 0.1).connect(this.reverb);
+    this.toneFilter = new Tone.Filter(9000, "lowpass").connect(this.delay);
 
     this.master.gain.value = 0.6;
 
@@ -88,7 +93,7 @@ class SynthEngine {
       this.presets[track.preset] ||
       this.presets.pluck;
 
-    const minAttack = Math.max(0.003, preset.envelope.attack);
+    const minAttack = Math.max(0.006, preset.envelope.attack);
     const vol =
       track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
 
@@ -198,7 +203,7 @@ class SynthEngine {
       state.customPresets?.[track.preset] ||
       this.presets[track.preset] ||
       this.presets.pluck;
-    const minAttack = Math.max(0.003, preset.envelope.attack);
+    const minAttack = Math.max(0.006, preset.envelope.attack);
     const vol =
       track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
     const synth = new Tone.PolySynth(Tone.Synth, {
@@ -215,12 +220,6 @@ class SynthEngine {
     if (state.isPlaying) return;
 
     state.isPlaying = true;
-
-    try {
-      Tone.Transport.start();
-    } catch (err) {
-      console.error("Failed to start transport", err);
-    }
 
     try {
       state.tracks.forEach((track) => {
@@ -248,7 +247,10 @@ class SynthEngine {
           }, time);
         });
       });
-    } catch (err) {}
+      Tone.Transport.start();
+    } catch (err) {
+      console.error("Failed to start transport", err);
+    }
 
     const el = document.getElementById("play-state");
     if (el) {
@@ -338,7 +340,9 @@ class SynthEngine {
       this.mic = null;
     }
     const url = URL.createObjectURL(blob);
-    const id = state.tracks.length ? Math.max(...state.tracks.map((t) => t.id)) + 1 : 0;
+    const id = state.tracks.length
+      ? Math.max(...state.tracks.map((t) => t.id)) + 1
+      : 0;
     const track = {
       id,
       name: `Vocal ${id + 1}`,
@@ -395,12 +399,17 @@ class SynthEngine {
     const duration = maxBeat * (60 / state.bpm);
 
     const toneBuffer = await Tone.Offline(async () => {
-      const limiter = new Tone.Limiter(-1).toDestination();
-      const compressor = new Tone.Compressor(-20, 2.5).connect(limiter);
-      const master = new Tone.Gain(0.45).connect(compressor);
+      const limiter = new Tone.Limiter(-2).toDestination();
+      const compressor = new Tone.Compressor({
+        threshold: -18,
+        ratio: 2.5,
+        attack: 0.01,
+        release: 0.25,
+      }).connect(limiter);
+      const master = new Tone.Gain(0.4).connect(compressor);
       const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 }).connect(master);
-      const delay = new Tone.FeedbackDelay("8n", 0.12).connect(reverb);
-      const toneFilter = new Tone.Filter(8000, "lowpass").connect(delay);
+      const delay = new Tone.FeedbackDelay("8n", 0.1).connect(reverb);
+      const toneFilter = new Tone.Filter(9000, "lowpass").connect(delay);
 
       const synths = new Map();
       const players = new Map();
@@ -426,7 +435,7 @@ class SynthEngine {
             customPresets?.[track.preset] ||
             this.presets[track.preset] ||
             this.presets.pluck;
-          const minAttack = Math.max(0.003, preset.envelope.attack);
+          const minAttack = Math.max(0.006, preset.envelope.attack);
           const vol =
             track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
           const synth = new Tone.PolySynth(Tone.Synth, {

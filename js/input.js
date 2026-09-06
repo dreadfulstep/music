@@ -22,6 +22,7 @@ class InputManager {
     this.bpmOwner = null; // what key owns active bpm adjustment
 
     this.pendingNotes = new Map(); // KV, { pitch, start }
+    this._liveTimer = null;
   }
 
   /**
@@ -88,8 +89,27 @@ class InputManager {
     setLiveNotes(Array.from(this.pendingNotes.values()));
     renderTimeline();
   }
+  
+  _startLiveTimer() {
+    if (this._liveTimer) return;
+    this._liveTimer = setInterval(() => {
+      if (this.pendingNotes.size === 0 || !state.isRecording) {
+        this._stopLiveTimer();
+        return;
+      }
+      renderTimeline();
+    }, 100);
+  }
+
+  _stopLiveTimer() {
+    if (this._liveTimer) {
+      clearInterval(this._liveTimer);
+      this._liveTimer = null;
+    }
+  }
 
   clearPendingNotes() {
+    this._stopLiveTimer();
     if (this.pendingNotes.size) {
       this.pendingNotes.clear();
       setLiveNotes([]);
@@ -97,6 +117,7 @@ class InputManager {
   }
   
   flushPendingNotes() {
+    this._stopLiveTimer();
     if (this.pendingNotes.size === 0) return;
     const commit = state.isRecording && !state.isCountingIn;
     const endBeat = this._currentBeat();
@@ -290,12 +311,14 @@ class InputManager {
         engine.playNote(note);
         this._highlight(key, true);
         if (state.isRecording && !state.isCountingIn) {
-          const beat = Tone.Transport.seconds / (60 / state.bpm);
           this.pendingNotes.set(`${state.currentTrack}-${note}`, {
             pitch: note,
-            start: beat,
+            start: this._currentBeat(),
+            duration: 0,
             trackIdx: state.currentTrack,
           });
+          this._syncLiveNotes();
+          this._startLiveTimer();
         }
       }
     });
@@ -314,19 +337,19 @@ class InputManager {
         this._highlight(key, false);
         const keyRef = `${state.currentTrack}-${note}`;
         const pending = this.pendingNotes.get(keyRef);
+        if (!pending) return;
+        this.pendingNotes.delete(keyRef);
+
         if (
-          pending &&
           state.isRecording &&
-          state.isPlaying &&
           !state.isCountingIn
         ) {
-          const endBeat = Tone.Transport.seconds / (60 / state.bpm);
-          pending.duration = Math.max(0.01, endBeat - pending.start); // min 1/16 note
+          pending.duration = Math.max(0.05, this._currentBeat() - pending.start); // min 1/16 note
           const target = state.tracks[pending.trackIdx];
           if (target) target.notes.push(pending);
-          this.pendingNotes.delete(keyRef);
-          renderTimeline();
         }
+        this._syncLiveNotes();
+        if (this.pendingNotes.size === 0) this._stopLiveTimer();
       }
     });
   }

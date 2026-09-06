@@ -109,6 +109,7 @@ function stopAll() {
   state.isPlaying = false;
   clearCountdown();
   updateTransportButtons();
+  if (playhead) playhead.style.left = "164px";
   renderTimeline();
 }
 
@@ -161,6 +162,7 @@ function startCountdown() {
 
       try {
         if (!state.isPlaying) engine.startTransport();
+        if (!state.isPlaying) state.isPlaying = true;
       } catch (err) {
         console.error("Transport failed to start", err);
       }

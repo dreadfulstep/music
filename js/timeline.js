@@ -130,6 +130,7 @@ export function renderTimeline() {
   state.tracks.forEach((t) => {
     t.notes.forEach((n) => (maxBeat = Math.max(maxBeat, n.start + n.duration)));
   });
+  liveNotes.forEach((n) => (maxBeat = Math.max(maxBeat, n.start + 1)));
   const avail = timeline.clientWidth > 0 ? timeline.clientWidth - (HEADER_W + PIANO_W) : 0;
   const timelineWidth = Math.max(800, maxBeat * PIXELS_PER_BEAT, avail);
   const totalWidth = HEADER_W + PIANO_W + timelineWidth;
@@ -323,8 +324,9 @@ export function renderTimeline() {
             ctx.textBaseline = "middle";
             ctx.fillText(note.pitch, x + 4, y + h / 2);
           }
-
-          liveNotes
+        });
+      }
+      liveNotes
             .filter((n) => n.trackIdx === trackIdx)
             .forEach((n) => {
               const semi = pitchToSemitone(n.pitch);
@@ -345,8 +347,6 @@ export function renderTimeline() {
               ctx.stroke();
               ctx.globalAlpha = 1;
             });
-        });
-      }
     }
 
     wrap.appendChild(canvas);
@@ -355,4 +355,7 @@ export function renderTimeline() {
     lane.appendChild(wrap);
     timeline.appendChild(lane);
   });
+
+  timeline.scrollLeft = prevLeft;
+  timeline.scrollTop = prevTop;
 }
