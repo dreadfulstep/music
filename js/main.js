@@ -25,7 +25,7 @@ const THEME_KEY = "midia.theme";
 // @ts-ignore
 if (window.lucide) lucide.createIcons();
 
-const isTouchDevice = () => window.matchMedia("(hover: none) and (pointer: coarse").matches;
+const isTouchDevice = () => window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
 function showMobileBlock() {
   const el = document.getElementById("mobile-block");

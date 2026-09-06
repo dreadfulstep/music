@@ -23,9 +23,11 @@ VS Code: Install the Live [Live Server](https://marketplace.visualstudio.com/ite
 ```bash
 git clone https://github.com/dreadfulstep/music.git
 cd music
-npx servepython3 -m http.server http.server 8000
+npx serve
+OR
+python -m http.server 8000
 ```
-Then open the printed URL (http://localhost:8080)
+Then open the printed URL (e.g. http://localhost:8080)
 
 ## Deploying
 It's a static site, you can direct any deployment service towards the repository and immediately deploy it without long build times.
