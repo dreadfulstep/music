@@ -313,7 +313,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   input.onCombo("shift", "p", () => projectManager.exportJSON());
-  input.onCombo(["ctrl", "shift"], "p", () => engine.exportProject());
+  input.onCombo("shift", "k", () => engine.exportProject());
   input.onCombo("shift", "o", () => engine.exportTrack(state.currentTrack));
 
   renderTimeline();
