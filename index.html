@@ -37,24 +37,40 @@
             <div class="shortcut">
               <span>Play / Stop</span> <kbd>Space</kbd>
             </div>
+            <div class="shortcut"><span>Record</span> <kbd>⇧ R</kbd></div>
+            <div class="shortcut"><span>Mute Track</span> <kbd>⇧ M</kbd></div>
+            <div class="shortcut"><span>Loop Track</span> <kbd>⇧ L</kbd></div>
+            <div class="shortcut"><span>Editor</span> <kbd>⇧ E</kbd></div>
             <div class="shortcut">
-              <span>Select Track</span> <kbd>Shift + 1</kbd>
+              <span>Editor · Tracks</span> <kbd>⇧ 1</kbd>
             </div>
             <div class="shortcut">
-              <span>Change Preset</span> <kbd>Shift + 2</kbd>
+              <span>Editor · Synths</span> <kbd>⇧ 2</kbd>
+            </div>
+            <div class="shortcut"><span>New Track</span> <kbd>⇧ 3</kbd></div>
+            <div class="shortcut"><span>Upload Audio</span> <kbd>⇧ U</kbd></div>
+            <div class="shortcut"><span>Mic Record</span> <kbd>⇧ V</kbd></div>
+            <div class="shortcut">
+              <span>BPM - / +</span>
+              <span class="kbd-pair">
+                <kbd>⇧ &lt;</kbd> <kbd>⇧ &gt;</kbd>
+              </span>
             </div>
             <div class="shortcut">
-              <span>New Track</span> <kbd>Shift + 3</kbd>
+              <span>Scroll time</span>
+              <span class="kbd-pair">
+                <kbd>⇧ ←</kbd> <kbd>⇧ →</kbd>
+              </span>
             </div>
             <div class="shortcut">
-              <span>Mute Track</span> <kbd>Shift + M</kbd>
+              <span>Scroll lanes</span>
+              <span class="kbd-pair">
+                <kbd>⇧ ↑</kbd> <kbd>⇧ ↓</kbd>
+              </span>
             </div>
-            <div class="shortcut">
-              <span>Increase BPM</span> <kbd>Shift + ></kbd>
-            </div>
-            <div class="shortcut">
-              <span>Decrease BPM</span> <kbd>Shift + <</kbd>
-            </div>
+            <div class="shortcut"><span>Export JSON</span> <kbd>⇧ P</kbd></div>
+            <div class="shortcut"><span>Export WAV</span> <kbd>^ ⇧ E</kbd></div>
+            <div class="shortcut"><span>Export Track</span> <kbd>⇧ O</kbd></div>
           </div>
         </div>
       </aside>
@@ -73,7 +89,7 @@
             <span class="nav-readout"
               ><strong id="bpm-display">128</strong> BPM</span
             >
-            <span class="nav-readout">01:00:00</span>
+            <span class="nav-readout" id="time-display">01:00:00</span>
           </div>
         </nav>
 
@@ -82,7 +98,7 @@
             <span class="countdown-number">3</span>
           </div>
           <div class="timeline" id="timeline">
-            <div class="playhead" id="playhead" style="left: 164px;"></div>
+            <div class="playhead" id="playhead" style="left: 164px"></div>
           </div>
           <div id="keys"></div>
         </div>

@@ -32,3 +32,5 @@ Very cool progress, the UI is actually really pretty even though its designed fo
 I really did lack programming yesterday, but im back maybe? I need to add beats for specific tracks, specific track volume control, improve main layout, add a projects modal on load and whatnot. Im sure theres more but i got voice recording, audio file uploading, and exporting down so most of the stuff i wanted is complete
 
 Seems to be a crackling issue, need to fix soon but oh well
+
+stuff seems to be pretty, i forgot to fix that crackling issue so i have to fix it within the next few hours to meet the deadline (if theres not an extension, i hope so but still)

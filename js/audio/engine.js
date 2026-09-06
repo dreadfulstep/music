@@ -79,8 +79,14 @@ class SynthEngine {
         await this._loadAudioForTrack(track.id, track.audioUrl);
       return;
     }
-    const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
-    const preset = track.presetData || customPresets?.[track.preset] ||  this.presets[track.preset] || this.presets.pluck;
+    const customPresets = /** @type {Record<string, any>} */ (
+      state.customPresets
+    );
+    const preset =
+      track.presetData ||
+      customPresets?.[track.preset] ||
+      this.presets[track.preset] ||
+      this.presets.pluck;
 
     const minAttack = Math.max(0.003, preset.envelope.attack);
     const vol =
@@ -96,7 +102,7 @@ class SynthEngine {
     this.synths.set(track.id, synth);
   }
 
-  /** 
+  /**
    * @param {number} trackId
    * @param {string} url
    */
@@ -121,7 +127,10 @@ class SynthEngine {
    * @param {number|null} [trackIdx]
    */
   playNote(note, trackIdx = null) {
-    const track = trackIdx === null ? state.tracks[state.currentTrack] : state.tracks[trackIdx];
+    const track =
+      trackIdx === null
+        ? state.tracks[state.currentTrack]
+        : state.tracks[trackIdx];
     if (!track) return;
     const key = `${track.id}-${note}`;
     if (this.playingNotes.has(key)) return; // already sounding
@@ -136,7 +145,10 @@ class SynthEngine {
    * @param {number|null} [trackIdx]
    */
   stopNote(note, trackIdx = null) {
-    const track = trackIdx === null ? state.tracks[state.currentTrack] : state.tracks[trackIdx];
+    const track =
+      trackIdx === null
+        ? state.tracks[state.currentTrack]
+        : state.tracks[trackIdx];
     if (!track) return;
     const key = `${track.id}-${note}`;
     const synth = this.synths.get(track.id);
@@ -152,11 +164,14 @@ class SynthEngine {
   setPreset(trackIdx, presetName) {
     const track = state.tracks[trackIdx];
     if (!track || track.type === "audio") return;
-    const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
+    const customPresets = /** @type {Record<string, any>} */ (
+      state.customPresets
+    );
     const preset = customPresets?.[presetName] || this.presets[presetName];
     if (!preset) return;
     const synth = this.synths.get(track.id);
-    if (synth) synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
+    if (synth)
+      synth.set({ oscillator: preset.oscillator, envelope: preset.envelope });
     track.preset = presetName;
   }
 
@@ -166,8 +181,8 @@ class SynthEngine {
   setBpm(bpm) {
     state.bpm = bpm;
     Tone.Transport.bpm.value = bpm;
-    // @ts-ignore
-    document.getElementById("bpm-display").textContent = `${bpm}`;
+    const el = document.getElementById("bpm-display");
+    if (el) el.textContent = String(bpm);
   }
 
   /**
@@ -178,7 +193,11 @@ class SynthEngine {
     if (!this.toneFilter) return;
     if (track.type === "audio") return;
     // @ts-ignore
-    const preset = track.presetData || state.customPresets?.[track.preset] || this.presets[track.preset] || this.presets.pluck;
+    const preset =
+      track.presetData ||
+      state.customPresets?.[track.preset] ||
+      this.presets[track.preset] ||
+      this.presets.pluck;
     const minAttack = Math.max(0.003, preset.envelope.attack);
     const vol =
       track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;
@@ -195,37 +214,47 @@ class SynthEngine {
   startTransport() {
     if (state.isPlaying) return;
 
-    state.tracks.forEach((track) => {
-      if (track.muted) return;
-      if (track.type === "audio") {
-        const player = this.audioPlayers.get(track.id);
-        if (!player) return;
-        player.loop = !!track.loop;
-        const dur = track.loop
-          ? undefined
-          : track.duration || player.buffer.duration;
-        Tone.Transport.schedule((t) => player.start(t, 0, dur), 0);
-        return;
-      }
-      const synth = this.synths.get(track.id);
-      if (!synth) return;
-
-      track.notes.forEach((note) => {
-        if (!note.duration || note.duration <= 0) return;
-        const time = note.start * (60 / state.bpm); // beats to seconds
-        const dur = note.duration * (60 / state.bpm);
-
-        Tone.Transport.schedule((t) => {
-          synth.triggerAttackRelease(note.pitch, dur, t);
-        }, time);
-      });
-    });
-
-    Tone.Transport.start();
     state.isPlaying = true;
-    // @ts-ignore
-    document.getElementById("play-state").textContent = "Playing";
-    document.getElementById("play-state")?.classList.add("active");
+
+    try {
+      Tone.Transport.start();
+    } catch (err) {
+      console.error("Failed to start transport", err);
+    }
+
+    try {
+      state.tracks.forEach((track) => {
+        if (track.muted) return;
+        if (track.type === "audio") {
+          const player = this.audioPlayers.get(track.id);
+          if (!player) return;
+          player.loop = !!track.loop;
+          const dur = track.loop
+            ? undefined
+            : track.duration || player.buffer.duration;
+          Tone.Transport.schedule((t) => player.start(t, 0, dur), 0);
+          return;
+        }
+        const synth = this.synths.get(track.id);
+        if (!synth) return;
+
+        track.notes.forEach((note) => {
+          if (!note.duration || note.duration <= 0) return;
+          const time = note.start * (60 / state.bpm); // beats to seconds
+          const dur = note.duration * (60 / state.bpm);
+
+          Tone.Transport.schedule((t) => {
+            synth.triggerAttackRelease(note.pitch, dur, t);
+          }, time);
+        });
+      });
+    } catch (err) {}
+
+    const el = document.getElementById("play-state");
+    if (el) {
+      el.textContent = "Playing";
+      el.classList.add("active");
+    }
   }
 
   stopTransport() {
@@ -245,15 +274,19 @@ class SynthEngine {
     state.isPlaying = false;
     state.isRecording = false;
     state.playheadBeat = 0;
-    // @ts-ignore
-    document.getElementById("play-state").textContent = "Stopped";
-    document.getElementById("play-state")?.classList.remove("active");
+    const el = document.getElementById("play-state");
+    if (el) {
+      el.textContent = "Stopped";
+      el.classList.remove("active");
+    }
   }
 
   /** @param {File} file */
   async uploadAudioFile(file) {
     const url = URL.createObjectURL(file);
-    const id = state.tracks.length ? Math.max(...state.tracks.map((t) => t.id)) + 1 : 0;
+    const id = state.tracks.length
+      ? Math.max(...state.tracks.map((t) => t.id)) + 1
+      : 0;
     const track = {
       id,
       name: file.name.replace(/\.[^/.]+$/, ""),
@@ -305,7 +338,7 @@ class SynthEngine {
       this.mic = null;
     }
     const url = URL.createObjectURL(blob);
-    const id = state.tracks.length;
+    const id = state.tracks.length ? Math.max(...state.tracks.map((t) => t.id)) + 1 : 0;
     const track = {
       id,
       name: `Vocal ${id + 1}`,
@@ -385,8 +418,14 @@ class SynthEngine {
             players.set(track.id, player);
           }
         } else {
-          const customPresets = /** @type {Record<string, any>} */ (state.customPresets);
-          const preset = track.presetData || customPresets?.[track.preset] ||this.presets[track.preset] || this.presets.pluck;
+          const customPresets = /** @type {Record<string, any>} */ (
+            state.customPresets
+          );
+          const preset =
+            track.presetData ||
+            customPresets?.[track.preset] ||
+            this.presets[track.preset] ||
+            this.presets.pluck;
           const minAttack = Math.max(0.003, preset.envelope.attack);
           const vol =
             track.preset === "pad" ? -16 : track.preset === "noise" ? -18 : -10;

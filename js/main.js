@@ -7,13 +7,12 @@ import { projectManager } from "./project.js";
 
 const timeline = document.getElementById("timeline");
 const playhead = document.getElementById("playhead");
-/**
- * @type {number | null | undefined}
- */
+/** @type {number | null | undefined} */
 let countdownInterval = null;
+let lastNoteCount = -1;
 
 // @ts-ignore
-lucide.createIcons();
+if (window.lucide) lucide.createIcons();
 
 function updatePlayhead() {
   if (!state.isPlaying || !timeline || !playhead) return;
@@ -25,11 +24,11 @@ function updatePlayhead() {
   const scrollLeft = timeline?.scrollLeft;
   const viewWidth = timeline?.clientWidth;
 
-  if (x > scrollLeft + viewWidth - 100) {
-    timeline.scrollLeft = x - 100;
-  }
+  if (x > scrollLeft + viewWidth - 100) timeline.scrollLeft = x - 100;
 
-  const timeEl = document.querySelector(".nav-readout:nth-child(2)");
+  const timeEl =
+    document.getElementById("time-display") ||
+    document.querySelector(".nav-readout:nth-child(2)");
   if (timeEl) {
     const s = Tone.Transport.seconds;
     const mm = Math.floor(s / 60)
@@ -42,6 +41,16 @@ function updatePlayhead() {
       .toString()
       .padStart(2, "0");
     timeEl.textContent = `${mm}:${ss}:${ms}`;
+  }
+
+  if (state.isRecording) {
+    const count = state.tracks.reduce((acc, t) => acc + t.notes.length, 0);
+    if (count != lastNoteCount) {
+      lastNoteCount = count;
+      renderTimeline();
+    }
+  } else {
+    lastNoteCount = -1;
   }
 
   requestAnimationFrame(updatePlayhead);
@@ -79,13 +88,23 @@ function stopAll() {
 }
 
 function startCountdown() {
+  input.clearPendingNotes();
+
+  if (!input.audioReady) {
+    input
+      ._ensureAudio()
+      .catch((err) => console.error("Audio init failed", err));
+  }
+
   state.isCountingIn = true;
   updateTransportButtons();
+
   let count = 3;
   const overlay = document.getElementById("countdown");
   const numberEl = overlay?.querySelector(".countdown-number");
   if (overlay) overlay.style.display = "flex";
   if (numberEl) numberEl.textContent = String(count);
+
   countdownInterval = setInterval(() => {
     count--;
     if (numberEl) numberEl.textContent = count > 0 ? String(count) : "●";
@@ -95,10 +114,18 @@ function startCountdown() {
       countdownInterval = null;
       state.isCountingIn = false;
       state.isRecording = true;
-      engine.startTransport();
-      updatePlayhead();
-      updateTransportButtons();
+
       if (overlay) overlay.style.display = "none";
+      updateTransportButtons();
+
+      try {
+        if (!state.isPlaying) engine.startTransport();
+      } catch (err) {
+        console.error("Transport failed to start", err);
+      }
+
+      lastNoteCount = -1;
+      updatePlayhead();
     }
   }, 1000);
 }
@@ -143,6 +170,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (t) {
       t.muted = !t.muted;
       input._updateDisplays();
+      renderTimeline();
     }
   });
 

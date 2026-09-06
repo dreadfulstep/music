@@ -2,6 +2,9 @@ import { engine } from "./audio/engine.js";
 import { state } from "./state.js";
 
 const PIXELS_PER_BEAT = 40;
+const HEADER_W = 120;
+const PIANO_W = 44;
+const ROLL_X = HEADER_W + PIANO_W; // 164
 
 const SEMITONES = 25; // C3 to C5
 const LANE_HEIGHT = 125;
@@ -20,10 +23,57 @@ const NOTE_NAMES = [
   "B",
 ];
 
+/**
+ * @type {any[]}
+ */
+let liveNotes = [];
+
+/** @param {any} notes */
+export function setLiveNotes(notes) {
+  liveNotes = Array.isArray(notes) ? notes : [];
+}
+
 /** @param {string} name @param {string} fb */
 const css = (name, fb) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
   fb;
+
+const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
+
+function transportBeat() {
+  // @ts-ignore
+  if (typeof Tone === "undefined" || !Tone.Transport) return 0;
+  // @ts-ignore
+  return Tone.Transport.seconds / (60 / state.bpm);
+}
+
+/**
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {any} x
+ * @param {any} y
+ * @param {number} w
+ * @param {number} h
+ * @param {number} r
+ */
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  if (typeof ctx.roundRect === "function") {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + r, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
 
 /**
  *
@@ -69,6 +119,9 @@ export function renderTimeline() {
   const timeline = document.getElementById("timeline");
   if (!timeline) return;
 
+  const prevLeft = timeline.scrollLeft;
+  const prevTop = timeline.scrollTop;
+
   const playhead = document.getElementById("playhead");
   timeline.innerHTML = "";
   if (playhead) timeline.appendChild(playhead);
@@ -78,49 +131,42 @@ export function renderTimeline() {
     t.notes.forEach((n) => (maxBeat = Math.max(maxBeat, n.start + n.duration)));
   });
   const timelineWidth = Math.max(800, maxBeat * PIXELS_PER_BEAT);
+  const totalWidth = HEADER_W + PIANO_W + timelineWidth;
 
   const rulerWrap = document.createElement("div");
   rulerWrap.className = "time-ruler";
   rulerWrap.style.width = "100%";
-  rulerWrap.style.minWidth = 120 + 44 + timelineWidth + "px";
+  rulerWrap.style.minWidth = totalWidth + "px";
 
   const rulerCanvas = document.createElement("canvas");
-  rulerCanvas.height = 24;
+  const rdpr = dpr();
+  rulerCanvas.width = totalWidth * rdpr;
+  rulerCanvas.height = 24 * rdpr;
   rulerCanvas.style.height = "24px";
-  rulerCanvas.style.width = 120 + 44 + timelineWidth + "px";
-  rulerCanvas.width =
-    (120 + 44 + timelineWidth) * (window.devicePixelRatio || 1);
+  rulerCanvas.style.width = totalWidth + "px";
+
   rulerWrap.appendChild(rulerCanvas);
   timeline.appendChild(rulerWrap);
 
   const rulerCtx = rulerCanvas.getContext("2d");
   if (rulerCtx) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    rulerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const bpm = state.bpm;
-    const secondsPerbeat = 60 / bpm;
-    rulerCtx.clearRect(0, 0, 120 + 44 + timelineWidth, 24);
-    rulerCtx.fillStyle =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--surface")
-        .trim() || "#111";
-    rulerCtx.fillRect(0, 0, 120 + 44 + timelineWidth, 24);
-    rulerCtx.fillStyle =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue("--foreground-tertiary")
-        .trim() || "#888";
+    rulerCtx.setTransform(rdpr, 0, 0, rdpr, 0, 0);
+
+    const secondsPerbeat = 60 / state.bpm;
+
+    rulerCtx.fillStyle = css("--surface", "#111");
+    rulerCtx.fillRect(0, 0, totalWidth, 24);
+
+    rulerCtx.fillStyle = css("--foreground-tertiary", "#666");
     rulerCtx.font = "10px ui-monospace, monospace";
     rulerCtx.textBaseline = "middle";
+
     for (let i = 0; i <= maxBeat; i++) {
-      const x = i * PIXELS_PER_BEAT + 164; // offset by header+piano width
+      const x = i * PIXELS_PER_BEAT + ROLL_X; // offset by header+piano width
       const isMeasure = i % 4 === 0;
       rulerCtx.strokeStyle = isMeasure
-        ? getComputedStyle(document.documentElement)
-            .getPropertyValue("--border-strong")
-            .trim()
-        : getComputedStyle(document.documentElement)
-            .getPropertyValue("--border")
-            .trim();
+        ? css("--border-strong", "rgba(128,128,128,0.3)")
+        : css("--border", "rgba(128,128,128,0.15)");
       rulerCtx.beginPath();
       rulerCtx.moveTo(x, isMeasure ? 0 : 12);
       rulerCtx.lineTo(x, 24);
@@ -132,7 +178,7 @@ export function renderTimeline() {
     }
   }
 
-  state.tracks.forEach((track) => {
+  state.tracks.forEach((track, trackIdx) => {
     const lane = document.createElement("div");
     lane.className =
       "track-lane" + (track.id === state.currentTrack ? " active" : "");
@@ -141,31 +187,30 @@ export function renderTimeline() {
     const header = document.createElement("div");
     header.className = "track-lane-header";
     header.innerHTML = `
-            <div style="width: 3px;height:100%;background:${track.color};border-radius:2px;"></div>
+            <div style="width:3px;height:100%;background:${track.color};border-radius:2px;"></div>
             <div style="display:flex;flex-direction:column;">
                 <span style="font-size:0.75rem;font-weight:500;">${track.name}</span>
                 <span style="font-size:0.65rem;color:var(--foreground-tertiary);text-transform:uppercase;">${track.preset}</span>
             </div>
-            ${track.muted ? '<span style="font-size:0.6rem;background:var(--accent);color:var(--background);padding:1px 4px;border-radius:3px;margin-left:auto;">M</span>' : ""}
+            ${track.muted ? '<span style="font-size:0.6rem;background:var(--border);color:var(--foreground-secondary);padding:1px 4px;border-radius:3px;margin-left:auto;">M</span>' : ""}
         `;
 
     const pianoRoll = document.createElement("div");
     pianoRoll.className = "piano-roll";
     const pianoCanvas = document.createElement("canvas");
-    pianoCanvas.width = 44 * (window.devicePixelRatio || 1);
-    pianoCanvas.height = LANE_HEIGHT * (window.devicePixelRatio || 1);
-    pianoCanvas.style.width = "44px";
+    const pdpr = dpr();
+    pianoCanvas.width = PIANO_W * pdpr;
+    pianoCanvas.height = LANE_HEIGHT * pdpr;
+    pianoCanvas.style.width = PIANO_W + "px";
     pianoCanvas.style.height = LANE_HEIGHT + "px";
     pianoRoll.appendChild(pianoCanvas);
 
     const pCtx = pianoCanvas.getContext("2d");
     if (pCtx) {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      pCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      pCtx.setTransform(pdpr, 0, 0, pdpr, 0, 0);
       const rowH = LANE_HEIGHT / SEMITONES;
-      pCtx.clearRect(0, 0, 44, LANE_HEIGHT);
       pCtx.fillStyle = css("--surface", "#1a1a1a");
-      pCtx.fillRect(0, 0, 44, LANE_HEIGHT);
+      pCtx.fillRect(0, 0, PIANO_W, LANE_HEIGHT);
       for (let i = 0; i < SEMITONES; i++) {
         const y = i * rowH;
         const ni = i % 12;
@@ -173,16 +218,16 @@ export function renderTimeline() {
           ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
         if (isSharp) {
           pCtx.fillStyle = css("--tertiary", "#222");
-          pCtx.fillRect(0, y, 44, rowH);
+          pCtx.fillRect(0, y, PIANO_W, rowH);
         }
         if (ni === 0) {
           pCtx.fillStyle = css("--foreground-tertiary", "#666");
-          pCtx.fillText("C" + (Math.floor(i / 12) + 3), 4, y + rowH - 4);
+          pCtx.fillText("C" + (Math.floor(i / 12) + 3), 4, y + rowH - 8);
         }
         pCtx.strokeStyle = css("--border", "rgba(128,128,128,0.15)");
         pCtx.beginPath();
         pCtx.moveTo(0, y);
-        pCtx.lineTo(44, y);
+        pCtx.lineTo(PIANO_W, y);
         pCtx.stroke();
       }
     }
@@ -192,23 +237,18 @@ export function renderTimeline() {
 
     wrap.style.width = timelineWidth + "px";
 
-    const dpr = window.devicePixelRatio || 1;
-
     const canvas = document.createElement("canvas");
+    const cpdr = dpr();
     canvas.className = "track-roll-canvas";
-    canvas.width = timelineWidth * dpr;
-    canvas.height = LANE_HEIGHT * dpr;
+    canvas.width = timelineWidth * cpdr;
+    canvas.height = LANE_HEIGHT * cpdr;
     canvas.style.width = timelineWidth + "px";
     canvas.style.height = LANE_HEIGHT + "px";
 
     const ctx = canvas.getContext("2d");
     if (ctx) {
-      ctx.scale(dpr, dpr);
-      ctx.clearRect(0, 0, timelineWidth, LANE_HEIGHT);
-      ctx.fillStyle =
-        getComputedStyle(document.documentElement)
-          .getPropertyValue("--background")
-          .trim() || "#0a0a0c";
+      ctx.setTransform(cpdr, 0, 0, cpdr, 0, 0);
+      ctx.fillStyle = css("--background", "#0a0a0c");
       ctx.fillRect(0, 0, timelineWidth, LANE_HEIGHT);
 
       const rowH = LANE_HEIGHT / SEMITONES;
@@ -220,6 +260,7 @@ export function renderTimeline() {
           ni === 1 || ni === 3 || ni === 6 || ni === 8 || ni === 10;
         ctx.globalAlpha = isSharp ? 0.7 : 0.35;
         ctx.strokeStyle = css("--border", "rgba(128,128,128,0.15)");
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(timelineWidth, y);
@@ -232,17 +273,14 @@ export function renderTimeline() {
         const isMeasure = i % 4 === 0;
         ctx.lineWidth = isMeasure ? 1.5 : 0.5;
         ctx.strokeStyle = isMeasure
-          ? getComputedStyle(document.documentElement)
-              .getPropertyValue("--border-strong")
-              .trim()
-          : getComputedStyle(document.documentElement)
-              .getPropertyValue("--border")
-              .trim();
+          ? css("--border-strong", "rgba(128,128,128,0.3)")
+          : css("--border", "rgba(128,128,128,0.15)");
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, LANE_HEIGHT);
         ctx.stroke();
       }
+      ctx.lineWidth = 1;
 
       if (track.type === "audio") {
         const buffer = engine.audioBuffers.get(track.id);
@@ -275,22 +313,8 @@ export function renderTimeline() {
           ctx.fillStyle = track.color;
           ctx.globalAlpha = 0.85;
 
-          // This is insane just to have rounded corners holy
-          const r = 3;
-          ctx.beginPath();
-          ctx.moveTo(x + r, y);
-          ctx.lineTo(x + w - r, y);
-          ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-          ctx.lineTo(x + w, y + h - r);
-          ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-          ctx.lineTo(x + r, y + h);
-          ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-          ctx.lineTo(x, y + r);
-          ctx.quadraticCurveTo(x, y, x + r, y);
-          ctx.closePath();
+          roundRect(ctx, x, y, w, h, 3);
           ctx.fill();
-
-          ctx.shadowBlur = 0;
           ctx.globalAlpha = 1;
 
           // Pitch label if fwide enough
@@ -300,6 +324,28 @@ export function renderTimeline() {
             ctx.textBaseline = "middle";
             ctx.fillText(note.pitch, x + 4, y + h / 2);
           }
+
+          liveNotes
+            .filter((n) => n.trackIdx === trackIdx)
+            .forEach((n) => {
+              const semi = pitchToSemitone(n.pitch);
+              const y = LANE_HEIGHT - (semi + 1) * rowH;
+              const x = n.start * PIXELS_PER_BEAT;
+              const w = Math.max(
+                8,
+                (transportBeat() - n.start) * PIXELS_PER_BEAT,
+              );
+              ctx.globalAlpha = 0.35;
+              ctx.fillStyle = track.color;
+              roundRect(ctx, x, y, w, rowH - 1, 3);
+              ctx.fill();
+              ctx.globalAlpha = 0.9;
+              ctx.strokeStyle = track.color;
+              ctx.lineWidth = 1;
+              roundRect(ctx, x, y, w, rowH - 1, 3);
+              ctx.stroke();
+              ctx.globalAlpha = 1;
+            });
         });
       }
     }

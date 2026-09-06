@@ -862,6 +862,7 @@ export class EditorModal {
   /** @param {KeyboardEvent} e */
   _handleTimelineKey(e) {
     const track = state.tracks[state.currentTrack];
+    if (!track) return;
     const notes = track.notes || [];
     const note =
       notes.length > 0 &&
